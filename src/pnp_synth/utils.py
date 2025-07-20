@@ -18,6 +18,17 @@ import pdb
 
 folds = ["train", "test", "val"]
 
+def get_device():
+    """
+    Get the best available device with fallback: CUDA -> MPS -> CPU
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
 def jtfsparam(synth_type):
     if synth_type == "ftm":
         return dict(

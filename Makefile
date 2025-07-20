@@ -172,6 +172,10 @@ ri25pnpl run-icassp25-pnploss:
 	@mkdir -p $(SAVE_DIR)/icassp25
 	cd icassp25/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
 
+#ri25all: ri23pl ri23pnpl ri25pl ri25pnpl
+
+ri25all: ri23pnpl ri25pl ri25pnpl
+
 ei25pl eval-icassp25-ploss:
 	@echo "Evaluating P-loss model (ICASSP25)..."
 	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam 0
