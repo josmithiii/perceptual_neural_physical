@@ -26,6 +26,10 @@ echo "Virtual environment activated"
 echo "Installing project dependencies..."
 uv pip install -e .
 
+# Install training dependencies
+echo "Installing training dependencies..."
+uv pip install tensorboard
+
 # Install kymatio (try GPU version, fallback to standard)
 echo "Installing kymatio..."
 if ! uv pip install kymatio; then
