@@ -112,11 +112,7 @@ ai23 audio-icassp23: icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5
 
 di23 demo-icassp23: icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5
 	@echo "Running ICASSP23 demo pipeline..."
-	@mkdir -p $(SAVE_DIR)
-	@echo "Note: This demo requires audio generation - see icassp23/ directory for full pipeline"
-	@echo "Example commands:"
-	@echo "  cd icassp23/ && python 01_generate_audio.py $(SAVE_DIR)/icassp23_audio"
-	@echo "  cd icassp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23_models $(INIT_ID)"
+	(cd ./icassp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23_models $(INIT_ID) $(BATCH_SIZE))
 
 # File target - only runs if output doesn't exist
 $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5:

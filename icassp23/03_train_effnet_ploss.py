@@ -41,7 +41,7 @@ print("")
 sys.stdout.flush()
 
 data_dir = os.path.join(save_dir, "x")
-weight_dir = os.path.join(save_dir, "M")
+weight_dir = os.path.join(save_dir, "ftm_M")
 model_dir = os.path.join(save_dir, "f_W")
 cqt_dir = data_dir
 
@@ -60,7 +60,14 @@ loss_type = "ploss"  # spec / weighted_p / ploss
 weight_type = "None"  # novol / pnp / None
 
 if __name__ == "__main__":
-    print("Current device: ", torch.cuda.get_device_name(0))
+    if torch.cuda.is_available():
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        print("Current device: MPS (Apple Silicon GPU)")
+        # Set default dtype to float32 for MPS compatibility
+        torch.set_default_dtype(torch.float32)
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -79,7 +86,7 @@ if __name__ == "__main__":
         ),
     )
     os.makedirs(model_save_path, exist_ok=True)
-    pred_path = os.path.join(model_save_path, "test_predictions.npy")
+    pred_path = os.path.join(model_save_path, "ftm_test_predictions.npy")
     y_norms, scaler = icassp23.scale_theta()
     full_df = icassp23.load_fold(fold="full")
     # initialize dataset
@@ -92,6 +99,7 @@ if __name__ == "__main__":
         weight_type=weight_type,  # novol, pnp
         feature="cqt",
         J=J,
+        logscale=icassp23.logscale,
         Q=Q,
         sr=sr,
         scaler=scaler,
@@ -105,7 +113,7 @@ if __name__ == "__main__":
             in_channels=1, bin_per_oct=Q, outdim=outdim, loss=loss_type, scaler=scaler
         )
     elif cnn_type == "efficientnet":
-        model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, scaler=scaler, var=bn_var, save_path=pred_path)
+        model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, scaler=scaler, var=bn_var, save_path=pred_path, steps_per_epoch=steps_per_epoch)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
     # initialize checkpoint methods
@@ -119,10 +127,17 @@ if __name__ == "__main__":
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=os.path.join(model_save_path,"logs"))
 
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = -1
+    else:
+        # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
+        accelerator = "cpu"
+        devices = 1
+        
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
-        auto_select_gpus=True,
+        accelerator=accelerator,
+        devices=devices,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage

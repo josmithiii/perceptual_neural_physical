@@ -456,7 +456,12 @@ class DrumData(Dataset):
                 fmin = 0.4 * cqt_params['sr'] / 2 ** self.J
             else:
                 fmin = 32.7
-            self.cqt_from_x = CQT(**cqt_params,fmin=fmin).cuda()
+            if torch.cuda.is_available():
+                self.cqt_from_x = CQT(**cqt_params,fmin=fmin).cuda()
+            elif torch.backends.mps.is_available():
+                self.cqt_from_x = CQT(**cqt_params,fmin=fmin).to('mps')
+            else:
+                self.cqt_from_x = CQT(**cqt_params,fmin=fmin)
         try:
             self.M_mean, self.sigma_mean, self.lambda0 = self.make_M_mean()
         except:
