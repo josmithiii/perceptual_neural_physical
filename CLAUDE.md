@@ -19,8 +19,9 @@ source .venv/bin/activate
 uv pip install -e .
 uv pip install torch torchvision torchaudio
 
+
 # Install kymatio (JTFS-GPU version)
-git clone https://github.com/cyrusvahidi/jtfs-gpu.git
+git clone https://github.com/cyrusasfa/jtfs-gpu.git
 cd jtfs-gpu
 uv pip install -e .
 cd ..
@@ -97,7 +98,7 @@ M = torch.mm(J.T, J)    # Riemannian metric
 - **Adaptive variants**: Levenberg-Marquardt-style weight scheduling
 
 ## Dependencies
-- **kymatio**: JTFS implementation (use cyrusvahidi/jtfs-gpu fork)
+- **kymatio**: JTFS implementation (use cyrusasfa/jtfs-gpu fork)
 - **pytorch-lightning**: Training framework
 - **functorch**: Auto-differentiation for Jacobian computation
 - **auraloss**: Perceptual audio loss functions

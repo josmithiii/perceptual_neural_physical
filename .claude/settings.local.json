@@ -6,7 +6,8 @@
       "Bash(make:*)",
       "Bash(source:*)",
       "Bash(python:*)",
-      "Bash(uv pip install:*)"
+      "Bash(uv pip install:*)",
+      "Bash(git clone:*)"
     ],
     "deny": []
   }

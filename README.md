@@ -19,7 +19,7 @@ cd perceptual_neural_physical
 python -m pip install .
 
 # install kymatio
-git clone https://github.com/cyrusvahidi/jtfs-gpu.git
+git clone https://github.com/cyrusasfa/jtfs-gpu.git
 cd kymatio
 pip install -e .
 

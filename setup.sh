@@ -31,7 +31,7 @@ echo "Installing kymatio..."
 if ! uv pip install kymatio; then
     echo "Standard kymatio installation failed, trying GPU version..."
     if [ ! -d "jtfs-gpu" ]; then
-        git clone https://github.com/cyrusvahidi/jtfs-gpu.git
+        git clone https://github.com/cyrusasfa/jtfs-gpu.git
     fi
     cd jtfs-gpu
     uv pip install -e .
