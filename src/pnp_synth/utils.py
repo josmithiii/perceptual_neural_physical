@@ -1,5 +1,8 @@
 import functools
-from kymatio.torch import TimeFrequencyScattering1D #kymatio 0.3.0
+try:
+    from kymatio.torch import TimeFrequencyScattering1D  # kymatio GPU version
+except ImportError:
+    from kymatio.torch import Scattering1D as TimeFrequencyScattering1D  # standard kymatio
 import pandas as pd
 from pnp_synth.neural import forward
 from pnp_synth.physical import ftm, amchirp

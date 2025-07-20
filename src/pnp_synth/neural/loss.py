@@ -2,11 +2,11 @@ import torch
 from pnp_synth.neural import forward
 import torch.nn as nn
 from pnp_synth import utils
-#kymatio 0.3.0
-from kymatio.torch import TimeFrequencyScattering1D
-#kymatio 0.4.0
-#from kymatio.torch import TimeFrequencyScattering as TimeFrequencyScattering1D
-#from kymatio.scattering1d.frontend.torch_frontend import TimeFrequencyScatteringTorch as TimeFrequencyScattering1D
+# Handle different kymatio versions
+try:
+    from kymatio.torch import TimeFrequencyScattering1D  # kymatio GPU version
+except ImportError:
+    from kymatio.torch import Scattering1D as TimeFrequencyScattering1D  # standard kymatio
 import functools
 import torch.nn.functional as F
 

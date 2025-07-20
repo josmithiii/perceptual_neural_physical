@@ -13,8 +13,12 @@ from pnp_synth.perceptual import metrics
 import auraloss
 from pnp_synth import utils
 import h5py
-import muda
-import jams
+try:
+    import muda
+    import jams
+    MUDA_AVAILABLE = True
+except ImportError:
+    MUDA_AVAILABLE = False
 import librosa
 import pickle
 

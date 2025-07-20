@@ -4,17 +4,29 @@ version = "0.1.0.dev0"
 description = "Perceptual-Neural-Physical (PNP) modeling of musical timbre"
 
 dependencies = [
-    "functorch",
-    #"kymatio @ git+https://git@github.com/kymatio/kymatio.git@main",
+    "torch>=2.0",
+    "torchvision",
+    "torchaudio",
+    "kymatio",
     "librosa",
     "pandas",
-    "sklearn",
+    "scikit-learn",
     "soundfile",
     "auraloss",
     "pytorch-lightning",
     "nnAudio",
     "h5py",
     "joblib"
+]
+
+[project.optional-dependencies]
+full = [
+    "muda",
+    "jams",
+    "black",
+    "flake8",
+    "jupyter",
+    "jupyterlab"
 ]
 
 [project.urls]
