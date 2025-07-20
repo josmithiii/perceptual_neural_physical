@@ -33,7 +33,7 @@ print("")
 sys.stdout.flush()
 
 data_dir = os.path.join(save_dir, "x")
-weight_dir = os.path.join(save_dir, "M")
+weight_dir = os.path.join(save_dir, "ftm_M")
 model_dir = os.path.join(save_dir, "f_W")
 cqt_dir = data_dir
 
@@ -47,6 +47,7 @@ Q = 12
 J = 10
 sr = 22050
 outdim = 5
+logscale_theta = True
 cnn_type = "efficientnet"  # efficientnet / cnn.wav2shape
 loss_type = "weighted_p"  # spec / weighted_p / ploss
 weight_type = "pnp"  # novol / pnp / None
@@ -87,20 +88,33 @@ if __name__ == "__main__":
         weight_dir=weight_dir,  # path to gradient folders
         weight_type=weight_type,  # novol, pnp
         feature="cqt",
+        logscale=logscale_theta,
         J=J,
         Q=Q,
         sr=sr,
+        scaler=scaler,
         num_workers=0
     )
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
+    
+    # Model parameters
+    lr = 1e-3
+    bn_var = 0.5
+    LMA = None
+    eff_type = "b0"
+    pred_path = os.path.join(model_save_path, "ftm_test_predictions.npy")
+    
     # initialize model, designate loss function
     if cnn_type == "cnn.wav2shape":
         model = cnn.wav2shape(
             in_channels=1, bin_per_oct=Q, outdim=outdim, loss=loss_type, scaler=scaler
         )
     elif cnn_type == "efficientnet":
-        model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, scaler=scaler)
+        model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
+                           scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch, 
+                           var=bn_var, save_path=pred_path, lr=lr, 
+                           logtheta=logscale_theta)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
     # initialize checkpoint methods
@@ -117,17 +131,14 @@ if __name__ == "__main__":
     if device == "cuda":
         accelerator = "gpu"
         devices = -1
-        auto_select_gpus = True
     else:
         # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
         accelerator = "cpu"
         devices = 1
-        auto_select_gpus = False
         
     trainer = pl.Trainer(
         accelerator=accelerator,
         devices=devices,
-        auto_select_gpus=auto_select_gpus,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
