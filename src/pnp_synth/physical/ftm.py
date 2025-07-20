@@ -39,7 +39,7 @@ def rectangular_drum(theta, logscale, **constants):
     l0 = torch.tensor(constants['l0']).to(device)
 
     l2 = l0 * alpha_side 
-    pi = torch.tensor(np.pi, dtype=torch.float64).to(device)
+    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
 
     beta_side = alpha_side + 1 / alpha_side
     S = l0 / pi * ((D * w11 * alpha_side)**2 + (p * alpha_side / tau11)**2)**0.25
@@ -121,7 +121,7 @@ def linearstring_percep(theta, logscale, **constants_string):
     tau11 = theta[1]
     lm = theta[4]
     ell = theta[5]
-    pi = torch.tensor(np.pi, dtype=torch.float64).to(device)
+    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
     dur = constants_string['dur']
 
     d1, d3, S4, c2 = percep2physics(w11, tau11, p, D, ell, lm)
@@ -179,7 +179,7 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
     d3 = theta[3]
     lm = 10 ** theta[4]
     ell = 10 ** theta[5]
-    pi = torch.tensor(np.pi, dtype=torch.float64).to(device)
+    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
     dur = constants_string['dur']
 
 

@@ -152,6 +152,7 @@ dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "  cd taslp23/ && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio"
 	@echo "  cd taslp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID)"
 
+
 # Quick experiment runners (if data exists)
 ri23pl run-icassp23-ploss:
 	@echo "Training EfficientNet with P-loss (ICASSP23)..."
@@ -160,6 +161,14 @@ ri23pl run-icassp23-ploss:
 ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
+
+
+# ICASSP25 data generation using FTM modal drum synthesis
+ai25 audio-icassp25:
+	@echo "Generating ICASSP25 audio data using FTM synthesis..."
+	@mkdir -p $(SAVE_DIR)/icassp25
+	cd icassp25/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/icassp25
+	@echo "✓ ICASSP25 audio data generated"
 
 # ICASSP25 experiment runners
 ri25pl run-icassp25-ploss:

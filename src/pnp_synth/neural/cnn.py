@@ -154,10 +154,10 @@ class EffNet(pl.LightningModule):
 
     def step(self, batch, fold, batch_idx):
         Sy = batch['feature'].to(self.current_device)
-        y = batch['y'].to(self.current_device).double()
+        y = batch['y'].to(self.current_device).float()
         weight = batch['weight'].to(self.current_device)
         try:
-            M = batch['M'].to(self.current_device).double()
+            M = batch['M'].to(self.current_device).float()
             M_mean = batch['M_mean'].to(self.current_device)
             self.LMA_lambda0 = batch['lambda0'].to(self.current_device)
             self.LMA_threshold = self.LMA_lambda0 # set threshold to be the initialized lambda
