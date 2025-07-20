@@ -4,7 +4,7 @@
 .PHONY: help setup install test clean lint format jupyter experiments
 
 # Default target
-help:
+h help:
 	@echo "Perceptual Neural Physical Sound Matching - Development Makefile"
 	@echo ""
 	@echo "Setup and Installation:"
@@ -101,7 +101,11 @@ format:
 	fi
 
 # Experiment demos (basic pipeline examples)
-demo-icassp23:
+
+ai23 audio-icassp23:
+	(cd ./icassp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/icassp23_audio)
+
+di23 demo-icassp23: audio-taslp23
 	@echo "Running ICASSP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see icassp23/ directory for full pipeline"
@@ -109,7 +113,10 @@ demo-icassp23:
 	@echo "  cd icassp23/ && python 01_generate_audio.py $(SAVE_DIR)/icassp23_audio"
 	@echo "  cd icassp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23_models $(INIT_ID)"
 
-demo-gretsi23:
+ag23 audio-gretsi23:
+	(cd ./gretsi23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio)
+
+dg23 demo-gretsi23:
 	@echo "Running GRETSI23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see gretsi23/ directory for full pipeline"
@@ -117,7 +124,10 @@ demo-gretsi23:
 	@echo "  cd gretsi23/ && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio"
 	@echo "  cd gretsi23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/gretsi23_models $(INIT_ID)"
 
-demo-taslp23:
+at23 audio-taslp23:
+	(cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio)
+
+dt23 demo-taslp23: audio-taslp23
 	@echo "Running TASLP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see taslp23/ directory for full pipeline"
@@ -126,21 +136,21 @@ demo-taslp23:
 	@echo "  cd taslp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID)"
 
 # Quick experiment runners (if data exists)
-run-icassp23-ploss:
+ri23pl run-icassp23-ploss:
 	@echo "Training EfficientNet with P-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
 
-run-icassp23-pnploss:
+ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
 
 # Data and output management
-create-outputs:
+cro create-outputs:
 	@mkdir -p $(SAVE_DIR)/{icassp23,gretsi23,taslp23,mersenne24,icassp25}
 	@echo "Created output directories in $(SAVE_DIR)/"
 
 # Cleanup
-clean:
+c clean:
 	@echo "Cleaning build artifacts and cache files..."
 	find . -name "*.pyc" -delete
 	find . -name "__pycache__" -delete -print
@@ -149,7 +159,7 @@ clean:
 	find . -name ".coverage" -delete 2>/dev/null || true
 	@echo "✓ Cleanup completed"
 
-clean-outputs:
+clo clean-outputs:
 	@echo "Removing output directories..."
 	rm -rf $(SAVE_DIR)
 	@echo "✓ Output directories removed"

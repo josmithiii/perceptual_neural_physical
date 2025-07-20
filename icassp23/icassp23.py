@@ -1,5 +1,5 @@
 import functools
-from kymatio.torch import TimeFrequencyScattering1D
+from kymatio.torch import Scattering1D as TimeFrequencyScattering1D
 import numpy as np
 import os
 import pandas as pd
