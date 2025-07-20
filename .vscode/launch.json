@@ -1,0 +1,99 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ICASSP25: Train P-loss (ri25pl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/icassp25/03_train_effnet_ploss.py",
+            "args": [
+                "./outputs/icassp25",
+                "test",
+                "1",
+                "1", 
+                "adam",
+                "b0",
+                "32"
+            ],
+            "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "ICASSP25: Train PNP-loss (ri25pnpl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/icassp25/05_train_effnet_pnploss.py",
+            "args": [
+                "./outputs/icassp25",
+                "test",
+                "1",
+                "1",
+                "adam", 
+                "b0",
+                "32"
+            ],
+            "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "ICASSP25: Evaluate P-loss (ei25pl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/icassp25/01_eval_ploss.py",
+            "args": [
+                "b0",
+                "adam",
+                "0"
+            ],
+            "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "ICASSP25: Evaluate PNP (ei25pnp)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/icassp25/02_eval_pnp.py",
+            "args": [
+                "b0",
+                "adam", 
+                "0"
+            ],
+            "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "ICASSP25: Evaluate Gradients (ei25grad)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/icassp25/06_eval_grad.py",
+            "args": [
+                "adam",
+                "ploss",
+                "b0",
+                "32"
+            ],
+            "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        }
+    ]
+}
