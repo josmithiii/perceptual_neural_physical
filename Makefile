@@ -102,10 +102,15 @@ format:
 
 # Experiment demos (basic pipeline examples)
 
-ai23 audio-icassp23:
+# File target - only runs if output doesn't exist
+icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
 	(cd ./icassp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/icassp23_audio)
 
-di23 demo-icassp23: audio-taslp23
+# Phony target aliases for convenience
+ai23 audio-icassp23: icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5
+
+di23 demo-icassp23: icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5
 	@echo "Running ICASSP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see icassp23/ directory for full pipeline"
@@ -113,10 +118,14 @@ di23 demo-icassp23: audio-taslp23
 	@echo "  cd icassp23/ && python 01_generate_audio.py $(SAVE_DIR)/icassp23_audio"
 	@echo "  cd icassp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23_models $(INIT_ID)"
 
-ag23 audio-gretsi23:
+# File target - only runs if output doesn't exist
+$(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
 	(cd ./gretsi23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio)
 
-dg23 demo-gretsi23:
+ag23 audio-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
+
+dg23 demo-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
 	@echo "Running GRETSI23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see gretsi23/ directory for full pipeline"
@@ -124,10 +133,14 @@ dg23 demo-gretsi23:
 	@echo "  cd gretsi23/ && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio"
 	@echo "  cd gretsi23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/gretsi23_models $(INIT_ID)"
 
-at23 audio-taslp23:
+# File target - only runs if output doesn't exist  
+$(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
 	(cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio)
 
-dt23 demo-taslp23: audio-taslp23
+at23 audio-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
+
+dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "Running TASLP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see taslp23/ directory for full pipeline"
