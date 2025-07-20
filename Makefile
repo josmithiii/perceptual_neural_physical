@@ -35,7 +35,8 @@ h help:
 	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss"
 	@echo "  ei25pl         - Evaluate P-loss model"
 	@echo "  ei25pnp        - Evaluate PNP model"
-	@echo "  ei25grad       - Evaluate gradients"
+	@echo "  ei25grad       - Evaluate gradients (batch_size=32)"
+	@echo "  ei25grad_original - Evaluate gradients (original config, batch_size=256)"
 	@echo ""
 	@echo "Variables:"
 	@echo "  SAVE_DIR       - Output directory for experiments (default: ./outputs)"
@@ -173,15 +174,19 @@ ri25pnpl run-icassp25-pnploss:
 
 ei25pl eval-icassp25-ploss:
 	@echo "Evaluating P-loss model (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py $(SAVE_DIR)/icassp25 $(INIT_ID)
+	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam 0
 
 ei25pnp eval-icassp25-pnp:
 	@echo "Evaluating PNP model (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 02_eval_pnp.py $(SAVE_DIR)/icassp25 $(INIT_ID)
+	cd icassp25/ && source ../.venv/bin/activate && python 02_eval_pnp.py b0 adam 0
 
 ei25grad eval-icassp25-grad:
 	@echo "Evaluating gradients (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py $(SAVE_DIR)/icassp25 $(INIT_ID)
+	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py adam ploss b0 32
+
+ei25grad_original eval-icassp25-grad-original:
+	@echo "Evaluating gradients (ICASSP25) - original config..."
+	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py adam ploss b0 256
 
 # Data and output management
 cro create-outputs:

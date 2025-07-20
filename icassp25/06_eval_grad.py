@@ -13,15 +13,23 @@ import pdb
 opt = sys.argv[1] # sophia / adam
 loss_type = sys.argv[2] # ploss / weighted_p
 eff_type = sys.argv[3]
+batch_size = int(sys.argv[4]) if len(sys.argv) > 4 else 256  # Original default was 256
 
-#data_dir = "/gpfswork/rech/aej/ufg99no/data/ftm_jtfs/" 
-data_dir = "/home/han/localdata/data/ftm_jtfs/"
+data_dir = "./outputs/icassp25/"
 full_df = icassp25.load_fold(fold="full")
-batch_size = 256
 scale_factor = 1e-10
+mu = 1e-10
 
-nbatch = 2#icassp25.SAMPLES_PER_EPOCH // (10 * batch_size) # however much that covers 10% training set
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+nbatch = 2  # Original was: icassp25.SAMPLES_PER_EPOCH // (10 * batch_size)
+# Device detection and configuration
+if torch.cuda.is_available():
+    print("Current device: ", torch.cuda.get_device_name(0))
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+elif torch.backends.mps.is_available():
+    print("Current device: MPS (Apple Silicon GPU)")
+    torch.set_default_dtype(torch.float32)  # MPS doesn't support float64
+else:
+    print("Current device: CPU")
 
 def evaluate_gradnorm(model, nbatch):
     model.zero_grad()
@@ -29,18 +37,36 @@ def evaluate_gradnorm(model, nbatch):
     model.train()
     for batch_idx, batch_data in enumerate(train_dataset):
         batch_input = batch_data["feature"]
-        batch_target = batch_data["y"].cuda()
+        if torch.cuda.is_available():
+            batch_target = batch_data["y"].cuda()
+        else:
+            batch_target = batch_data["y"]
         # Perform forward pass
-        output = model(batch_input).cuda()
+        output = model(batch_input)
+        if torch.cuda.is_available():
+            output = output.cuda()
         # Compute loss
         if loss_type == "ploss":
             loss = F.mse_loss(output, batch_target)
         elif loss_type == "weighted_p":
-            batch_M = batch_data["M"].cuda()
-            D = torch.eye(batch_M.shape[1]).double()[None, :, :]
-            D = LMA_lambda * D.to("cuda")
+            if torch.cuda.is_available():
+                batch_M = batch_data["M"].cuda()
+                LMA_lambda = batch_data['lambda0'].cuda() if 'lambda0' in batch_data else torch.tensor(1e-3).cuda()
+            else:
+                batch_M = batch_data["M"]
+                LMA_lambda = batch_data['lambda0'] if 'lambda0' in batch_data else torch.tensor(1e-3)
+            
+            D = torch.eye(batch_M.shape[1]).float()[None, :, :]
+            if torch.cuda.is_available():
+                D = LMA_lambda * D.to("cuda")
+            else:
+                D = LMA_lambda * D
             batch_M = batch_M + D
-            loss = losses.loss_bilinear(output.double(), batch_target.double(), mu*batch_M)
+            # Use float32 for MPS compatibility
+            if torch.backends.mps.is_available():
+                loss = losses.loss_bilinear(output.float(), batch_target.float(), mu*batch_M)
+            else:
+                loss = losses.loss_bilinear(output.double(), batch_target.double(), mu*batch_M)
         # Perform backward pass
         loss.backward()
         if batch_idx + 1 == nbatch: # in the original paper this accounts for 10% of training set
@@ -109,7 +135,7 @@ dataset = cnn.DrumDataModule(
         data_dir=os.path.join(data_dir, "x"),  # path to hdf5 files
         cqt_dir=os.path.join(data_dir, "x"),
         df=full_df,
-        weight_dir=os.path.join(data_dir, "M_log"),  # path to gradient folders
+        weight_dir="ftm_dummy",  # Contains 'ftm' to set synth_type correctly
         weight_type=None,  # novol, pnp
         feature="cqt",
         logscale=1,
@@ -144,7 +170,12 @@ model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_ty
                          logtheta=1, opt=opt, mu=mu)
 
 
-model = model.cuda()
+if torch.cuda.is_available():
+    model = model.cuda()
+    device = "cuda"
+else:
+    # Use CPU for MPS compatibility (torchmetrics has float64 issues with MPS)
+    device = "cpu"
 
 
 
@@ -167,25 +198,47 @@ for batch_idx, batch_data in enumerate(train_dataset): # see once all the traini
     print("step {}:".format(batch_idx))
     model.train()
     batch_input = batch_data["feature"]
-    batch_target = batch_data["y"].to("cuda")
-    batch_M = batch_data["M"].cuda()
+    batch_target = batch_data["y"].to(device)
+    
+    # Handle case where gradient data (M, lambda0) might not be available
+    if "M" in batch_data:
+        if torch.cuda.is_available():
+            batch_M = batch_data["M"].cuda()
+        else:
+            batch_M = batch_data["M"]
+    else:
+        # Create identity matrix as default when M is not available
+        batch_M = torch.eye(batch_target.shape[1]).unsqueeze(0).repeat(batch_target.shape[0], 1, 1).to(device)
+    
     if batch_idx == 0:
-        LMA_lambda = batch_data['lambda0'].to("cuda")
+        if 'lambda0' in batch_data:
+            LMA_lambda = batch_data['lambda0'].to(device)
+        else:
+            LMA_lambda = torch.tensor(1e-3).to(device)
         print("wgat is lambda", LMA_lambda)
     elif batch_idx == steps_per_epoch // 2: # nonstationary objective
-        LMA_lambda = batch_data['lambda0'].to("cuda") * LMA["accelerator"] #(decay the damping coefficients)
+        if 'lambda0' in batch_data:
+            LMA_lambda = batch_data['lambda0'].to(device) * LMA["accelerator"] #(decay the damping coefficients)
+        else:
+            LMA_lambda = LMA_lambda * LMA["accelerator"]
     optimizer_curr.zero_grad()  # Clear existing gradients
     # Perform forward pass
-    output = model(batch_input).cuda()
+    output = model(batch_input)
+    if torch.cuda.is_available():
+        output = output.cuda()
     # Compute loss
     if loss_type == "ploss":
         loss = F.mse_loss(output, batch_target)
     elif loss_type == "weighted_p":
-        batch_M = batch_data["M"].cuda()
-        D = torch.eye(batch_M.shape[1]).double()[None, :, :]
-        D = LMA_lambda * D.to("cuda")
+        # Use the batch_M that was already handled above
+        D = torch.eye(batch_M.shape[1]).float()[None, :, :]
+        D = LMA_lambda * D.to(device)
         batch_M = batch_M + D
-        loss = losses.loss_bilinear(output.double(), batch_target.double(), mu * batch_M)
+        # Use float32 for MPS compatibility
+        if torch.backends.mps.is_available():
+            loss = losses.loss_bilinear(output.float(), batch_target.float(), mu * batch_M)
+        else:
+            loss = losses.loss_bilinear(output.double(), batch_target.double(), mu * batch_M)
     # Perform backward pass
     loss.backward()
     params_before = [param.clone() for param in model.parameters()]

@@ -23,7 +23,7 @@ from pnp_synth.neural import cnn
 import doce
 
 
-save_dir = "/gpfswork/rech/aej/ufg99no/data/ftm_jtfs"
+save_dir = "./outputs/icassp25"
 loss_type = "weighted_p"
 minmax = 1
 logscale_theta = 1

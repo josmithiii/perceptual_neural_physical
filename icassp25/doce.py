@@ -75,7 +75,13 @@ def train(save_dir, init_id, batch_size,
 
     lr = 1e-3
 
-    print("Current device: ", torch.cuda.get_device_name(0))
+    if torch.cuda.is_available():
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        print("Current device: MPS (Apple Silicon GPU)")
+        torch.set_default_dtype(torch.float32)
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -157,9 +163,17 @@ def train(save_dir, init_id, batch_size,
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = -1
+    else:
+        # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
+        accelerator = "cpu"
+        devices = 1
+        
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
+        accelerator=accelerator,
+        devices=devices,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
@@ -239,7 +253,13 @@ def eval(save_dir, init_id, batch_size,
     finetune = False
     mu = 1e-10
     
-    print("Current device: ", torch.cuda.get_device_name(0))
+    if torch.cuda.is_available():
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        print("Current device: MPS (Apple Silicon GPU)")
+        torch.set_default_dtype(torch.float32)
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     if loss_type == "weighted_p":
         name_list = [
@@ -344,9 +364,17 @@ def eval(save_dir, init_id, batch_size,
             lr_monitor = LearningRateMonitor(logging_interval='step')
 
             # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+            if torch.cuda.is_available():
+                accelerator = "gpu"
+                devices = -1
+            else:
+                # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
+                accelerator = "cpu"
+                devices = 1
+                
             trainer = pl.Trainer(
-                accelerator="gpu",
-                devices=-1,
+                accelerator=accelerator,
+                devices=devices,
                 max_epochs=epoch_max,
                 max_steps=max_steps,
                 limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
