@@ -44,13 +44,13 @@ print("")
 sys.stdout.flush()
 
 data_dir = os.path.join(save_dir, "x")
-weight_dir = os.path.join(save_dir, "M_log")
+weight_dir = os.path.join(save_dir, "ftm_M_log")
 model_dir = os.path.join(save_dir, "f_W")
 cqt_dir = data_dir
 
 
 epoch_max = 10
-steps_per_epoch = icassp25.SAMPLES_PER_EPOCH / batch_size
+steps_per_epoch = int(icassp25.SAMPLES_PER_EPOCH / batch_size)
 max_steps = steps_per_epoch * epoch_max
 # feature parameters
 Q = 12
@@ -74,7 +74,13 @@ else:
 
 lr = 1e-3
 if __name__ == "__main__":
-    print("Current device: ", torch.cuda.get_device_name(0))
+    if torch.cuda.is_available():
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        print("Current device: MPS (Apple Silicon GPU)")
+        torch.set_default_dtype(torch.float32)
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -159,15 +165,23 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = -1
+    else:
+        # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
+        accelerator = "cpu"
+        devices = 1
+        
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
+        accelerator=accelerator,
+        devices=devices,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
         limit_val_batches=1.0,
         limit_test_batches=1.0,
-        callbacks=[checkpoint_cb, checkpoint_cb_best, lr_monitor],
+        callbacks=[checkpoint_cb_best, lr_monitor],
         enable_progress_bar=True,
         logger=tb_logger,
         max_time=None#timedelta(hours=12)

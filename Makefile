@@ -26,9 +26,16 @@ h help:
 	@echo "  format         - Format code (if available)"
 	@echo ""
 	@echo "Experiments (Examples):"
-	@echo "  demo-icassp23  - Run basic ICASSP23 pipeline demo"
-	@echo "  demo-gretsi23  - Run basic GRETSI23 pipeline demo"
-	@echo "  demo-taslp23   - Run basic TASLP23 pipeline demo"
+	@echo "  di23/demo-icassp23  - Run basic ICASSP23 pipeline demo"
+	@echo "  demo-gretsi23       - Run basic GRETSI23 pipeline demo"
+	@echo "  demo-taslp23        - Run basic TASLP23 pipeline demo"
+	@echo ""
+	@echo "ICASSP25 Training:"
+	@echo "  ri25pl         - Train EfficientNet with P-loss"
+	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss"
+	@echo "  ei25pl         - Evaluate P-loss model"
+	@echo "  ei25pnp        - Evaluate PNP model"
+	@echo "  ei25grad       - Evaluate gradients"
 	@echo ""
 	@echo "Variables:"
 	@echo "  SAVE_DIR       - Output directory for experiments (default: ./outputs)"
@@ -152,6 +159,29 @@ ri23pl run-icassp23-ploss:
 ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
+
+# ICASSP25 experiment runners
+ri25pl run-icassp25-ploss:
+	@echo "Training EfficientNet with P-loss (ICASSP25)..."
+	@mkdir -p $(SAVE_DIR)/icassp25
+	cd icassp25/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
+
+ri25pnpl run-icassp25-pnploss:
+	@echo "Training EfficientNet with PNP-loss (ICASSP25)..."
+	@mkdir -p $(SAVE_DIR)/icassp25
+	cd icassp25/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
+
+ei25pl eval-icassp25-ploss:
+	@echo "Evaluating P-loss model (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py $(SAVE_DIR)/icassp25 $(INIT_ID)
+
+ei25pnp eval-icassp25-pnp:
+	@echo "Evaluating PNP model (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python 02_eval_pnp.py $(SAVE_DIR)/icassp25 $(INIT_ID)
+
+ei25grad eval-icassp25-grad:
+	@echo "Evaluating gradients (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py $(SAVE_DIR)/icassp25 $(INIT_ID)
 
 # Data and output management
 cro create-outputs:
