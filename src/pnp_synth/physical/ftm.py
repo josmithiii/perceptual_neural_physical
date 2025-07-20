@@ -4,6 +4,7 @@ drum model with normalized side length ratio/ side length, in impulse form
 """
 import numpy as np
 import torch
+from pnp_synth import utils
 
 constants = {
     "x1": 0.4,
@@ -28,7 +29,7 @@ constants_string = {
 
 
 def rectangular_drum(theta, logscale, **constants):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = utils.get_device()
     w11 = 10 ** theta[0] if logscale else theta[0]
     p = 10 ** theta[2] if logscale else theta[2]
     D = 10 ** theta[3] if logscale else theta[3]
@@ -111,7 +112,7 @@ def percep2physics(w1, tau1, p, D, l, lm):
 
 # theta = {w1,tau1, p, D, lm, ell}
 def linearstring_percep(theta, logscale, **constants_string):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = utils.get_device()
     # convert omega, tau, p, D into S, c, d1, d3
     w11 = 10 ** theta[0] if logscale else theta[0]
     p = 10 ** theta[2] if logscale else theta[2]
@@ -170,7 +171,7 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
     unlike the convention in rabenstein's paper. d3 is always positive, so alpha=(d1+d3*n)/(2*lm)
     beta = EI n2 + Ts0 n (positive sign here)
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = utils.get_device()
     # convert omega, tau, p, D into S, c, d1, d3
     EI = theta[0]
     Ts0 = 10 ** theta[1]

@@ -112,7 +112,7 @@ class EffNet(pl.LightningModule):
         self.ploss_test = []
         self.std = torch.sqrt(torch.tensor(var))
         self.monitor_valloss = torch.inf
-        self.current_device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.current_device = utils.get_device()
         if LMA:
             self.LMA_accelerator = LMA['accelerator']
             self.LMA_brake = LMA['brake']
@@ -456,12 +456,8 @@ class DrumData(Dataset):
                 fmin = 0.4 * cqt_params['sr'] / 2 ** self.J
             else:
                 fmin = 32.7
-            if torch.cuda.is_available():
-                self.cqt_from_x = CQT(**cqt_params,fmin=fmin).cuda()
-            elif torch.backends.mps.is_available():
-                self.cqt_from_x = CQT(**cqt_params,fmin=fmin).to('mps')
-            else:
-                self.cqt_from_x = CQT(**cqt_params,fmin=fmin)
+            device = utils.get_device()
+            self.cqt_from_x = CQT(**cqt_params,fmin=fmin).to(device)
         try:
             self.M_mean, self.sigma_mean, self.lambda0 = self.make_M_mean()
         except:
@@ -615,7 +611,8 @@ class DrumData(Dataset):
                 for j_new in self.noise_gen.transform(j_orig):
                     x = j_new.sandbox.muda._audio["y"]
                    
-        x = torch.tensor(x, dtype=torch.float32).cuda()
+        device = utils.get_device()
+        x = torch.tensor(x, dtype=torch.float32).to(device)
         Sy = self.cqt_from_x(x)[0]
         Sy = torch.log1p(Sy/eps)
         return Sy

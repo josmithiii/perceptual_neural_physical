@@ -18,6 +18,7 @@ from pytorch_lightning import loggers as pl_loggers
 
 import icassp23
 from pnp_synth.neural import cnn
+from pnp_synth.utils import get_device
 
 start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
@@ -51,7 +52,14 @@ loss_type = "weighted_p"  # spec / weighted_p / ploss
 weight_type = "pnp"  # novol / pnp / None
 
 if __name__ == "__main__":
-    print("Current device: ", torch.cuda.get_device_name(0))
+    device = get_device()
+    if device == "cuda":
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif device == "mps":
+        print("Current device: MPS (Apple Silicon GPU)")
+        torch.set_default_dtype(torch.float32)
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -106,10 +114,20 @@ if __name__ == "__main__":
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=os.path.join(model_save_path,"logs"))
 
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    if device == "cuda":
+        accelerator = "gpu"
+        devices = -1
+        auto_select_gpus = True
+    else:
+        # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
+        accelerator = "cpu"
+        devices = 1
+        auto_select_gpus = False
+        
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
-        auto_select_gpus=True,
+        accelerator=accelerator,
+        devices=devices,
+        auto_select_gpus=auto_select_gpus,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage

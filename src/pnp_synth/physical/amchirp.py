@@ -1,9 +1,12 @@
 import numpy as np
 import torch
+from pnp_synth import utils
 
-def gaussian(M, std, sym=True, device="cuda"):
+def gaussian(M, std, sym=True, device=None):
     ''' Gaussian window converted from scipy.signal.gaussian
     '''
+    if device is None:
+        device = utils.get_device()
     if M < 1:
         return torch.array([])
     if M == 1:

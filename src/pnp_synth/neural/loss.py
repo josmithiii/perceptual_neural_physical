@@ -107,7 +107,8 @@ class TimeFrequencyScatteringLoss(LMAloss):
         self.create_ops()
 
     def create_ops(self):
-        jtfs_operator = TimeFrequencyScattering1D(**utils.jtfs_params, out_type="list").cuda()
+        device = utils.get_device()
+        jtfs_operator = TimeFrequencyScattering1D(**utils.jtfs_params, out_type="list").to(device)
         jtfs_operator.average_global = True
         self.ops = [functools.partial(Phicircg, jtfs_operator=jtfs_operator, scaler=self.scaler)]
 
