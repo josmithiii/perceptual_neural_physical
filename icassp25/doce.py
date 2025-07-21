@@ -22,9 +22,9 @@ import icassp25
 from pnp_synth.neural import cnn
 
 
-#this function takes in 
+#this function takes in
 
-def train(save_dir, init_id, batch_size, 
+def train(save_dir, init_id, batch_size,
           loss_type, eff_type, minmax, logscale_theta, finetune,
           opt, save_freq, epoch_max):
     """
@@ -55,7 +55,7 @@ def train(save_dir, init_id, batch_size,
 
     steps_per_epoch = icassp25.SAMPLES_PER_EPOCH / batch_size
     max_steps = steps_per_epoch * epoch_max
-    
+
     Q = 12
     J = 10
     outdim = 5
@@ -86,7 +86,7 @@ def train(save_dir, init_id, batch_size,
     model_save_path = os.path.join(
         model_dir,
         "_".join([
-            eff_type, 
+            eff_type,
             loss_type,
             "finetune" + str(finetune),
             "log-" + str(logscale_theta),
@@ -101,7 +101,7 @@ def train(save_dir, init_id, batch_size,
     os.makedirs(model_save_path, exist_ok=True)
     pred_path = os.path.join(model_save_path, "test_predictions.npy")
 
-    if minmax: 
+    if minmax:
         nus, scaler = icassp25.scale_theta(logscale_theta)
     else:
         scaler = None
@@ -130,8 +130,8 @@ def train(save_dir, init_id, batch_size,
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function
     model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
-                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch, 
-                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax, 
+                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch,
+                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax,
                        logtheta=logscale_theta, opt=opt)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
@@ -145,7 +145,7 @@ def train(save_dir, init_id, batch_size,
         every_n_epochs=save_freq,
         save_weights_only=False,
     )
-    # save best checkpoint 
+    # save best checkpoint
     if loss_type == "ploss":
         abbr_loss = "p"
     elif loss_type == "weighted_p":
@@ -170,7 +170,7 @@ def train(save_dir, init_id, batch_size,
         # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
         accelerator = "cpu"
         devices = 1
-        
+
     trainer = pl.Trainer(
         accelerator=accelerator,
         devices=devices,
@@ -190,7 +190,7 @@ def train(save_dir, init_id, batch_size,
     trainer.fit(model, dataset) # whatever loss is used for training
 
     #extract tensorboard logs
-    
+
 
 
     print(str(datetime.datetime.now()) + " Success.")
@@ -202,23 +202,23 @@ def train(save_dir, init_id, batch_size,
         elapsed_hours, elapsed_minutes, elapsed_seconds
     )
     print("Total elapsed time: " + elapsed_str + ".")
-    
-    
 
 
 
-def eval(save_dir, init_id, batch_size, 
+
+
+def eval(save_dir, init_id, batch_size,
           loss_type, eff_type, minmax, logscale_theta, finetune,
           opt, save_freq, epoch_max):
     """
-     This function will load a series of model checkpoint and output its test metrics. 
+     This function will load a series of model checkpoint and output its test metrics.
      its best if all metrics type are computed simultaneously during test run,
      instead of calling to be computed individually in this function
 
      save_freq is an argument to the logger, data will be pulled from the tensorboard logs
 
      """
-    
+
     start_time = int(time.time())
     print(str(datetime.datetime.now()) + " Start.")
     print(__doc__ + "\n")
@@ -230,7 +230,7 @@ def eval(save_dir, init_id, batch_size,
 
     steps_per_epoch = icassp25.SAMPLES_PER_EPOCH / batch_size
     max_steps = steps_per_epoch * epoch_max
-    
+
     Q = 12
     J = 10
     outdim = 5
@@ -252,7 +252,7 @@ def eval(save_dir, init_id, batch_size,
     lr = 1e-3
     finetune = False
     mu = 1e-10
-    
+
     if torch.cuda.is_available():
         print("Current device: ", torch.cuda.get_device_name(0))
     elif torch.backends.mps.is_available():
@@ -263,7 +263,7 @@ def eval(save_dir, init_id, batch_size,
     torch.multiprocessing.set_start_method('spawn')
     if loss_type == "weighted_p":
         name_list = [
-            eff_type, 
+            eff_type,
             loss_type,
             "finetune" + str(finetune),
             "log-" + str(logscale_theta),
@@ -276,7 +276,7 @@ def eval(save_dir, init_id, batch_size,
             ]
     else:
         name_list = [
-            eff_type, 
+            eff_type,
             loss_type,
             "finetune" + str(finetune),
             "log-" + str(logscale_theta),
@@ -286,12 +286,12 @@ def eval(save_dir, init_id, batch_size,
             "lr-"+ str(lr),
             "init-" + str(init_id),
             ]
-        
+
     model_save_path = os.path.join(model_dir, "_".join(name_list))
     pred_path = os.path.join(model_save_path, "test_predictions.npy")
     os.makedirs(model_save_path, exist_ok=True)
 
-    if minmax: 
+    if minmax:
         nus, scaler = icassp25.scale_theta(logscale_theta)
     else:
         scaler = None
@@ -321,27 +321,27 @@ def eval(save_dir, init_id, batch_size,
     # initialize model, designate loss function
     if loss_type == "weighted_p":
         model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
-                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch, 
-                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax, 
+                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch,
+                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax,
                        logtheta=logscale_theta, opt=opt, mu=mu)
     else:
         model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
-                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch, 
-                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax, 
+                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch,
+                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax,
                        logtheta=logscale_theta, opt=opt)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
 
     metrics = {}
     for file in os.listdir(model_save_path):
-        if "ckpt" in file and "best" not in file and "last" not in file:      
+        if "ckpt" in file and "last" not in file:
             epoch = file.split("=")[-2][:2]
             pred_path = os.path.join(model_save_path, "test_predictions_epoch{}.npy".format(epoch))
-            model = model.load_from_checkpoint(os.path.join(model_save_path, file), in_channels=1, 
-                                               outdim=outdim, loss=loss_type, scaler=scaler,var=bn_var, 
-                                               eff_type=eff_type, save_path=pred_path, steps_per_epoch=steps_per_epoch, 
+            model = cnn.EffNet.load_from_checkpoint(os.path.join(model_save_path, file), in_channels=1,
+                                               outdim=outdim, loss=loss_type, scaler=scaler,var=bn_var,
+                                               eff_type=eff_type, save_path=pred_path, steps_per_epoch=steps_per_epoch,
                                                lr=lr, LMA=LMA, minmax=minmax,logtheta=logscale_theta, opt=opt)
-            
+
             # initialize checkpoint methods
             # save checkpoint every save_freq epochs
             checkpoint_cb = ModelCheckpoint(
@@ -352,7 +352,7 @@ def eval(save_dir, init_id, batch_size,
                 every_n_epochs=save_freq,
                 save_weights_only=False,
             )
-            # save best checkpoint 
+            # save best checkpoint
             checkpoint_cb_best = ModelCheckpoint(
                 dirpath=model_save_path,
                 monitor="val_loss",
@@ -371,13 +371,13 @@ def eval(save_dir, init_id, batch_size,
                 # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
                 accelerator = "cpu"
                 devices = 1
-                
+
             trainer = pl.Trainer(
                 accelerator=accelerator,
                 devices=devices,
                 max_epochs=epoch_max,
                 max_steps=max_steps,
-                limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
+                limit_train_batches=int(steps_per_epoch),  # Convert to integer
                 limit_val_batches=1.0,
                 limit_test_batches=1.0,
                 callbacks=[checkpoint_cb, checkpoint_cb_best, lr_monitor],
@@ -387,13 +387,13 @@ def eval(save_dir, init_id, batch_size,
             )
 
             print("Testing model ... ")
-            test_loss = trainer.test(model, dataset, verbose=False) # avg_loss, avg_macro_metric, avg_micro_metric, avg_mss_metric   
+            test_loss = trainer.test(model, dataset, verbose=False) # avg_loss, avg_macro_metric, avg_micro_metric, avg_mss_metric
             print(test_loss)
             avg_loss, macro, micro, mss, avg_ploss = test_loss[0]["test_loss"], test_loss[0]["macro_metrics"], test_loss[0]["micro_metrics"], test_loss[0]["mss metrics"], test_loss[0]["ploss"]
             metrics[epoch] = {"test loss": avg_loss, "macro": macro, "micro": micro, "mss": mss, "ploss": avg_ploss}
             print("Model saved at: {}".format(model_save_path))
             print("Average test loss: {}".format(test_loss))
             print("\n")
-    df = pd.DataFrame.from_dict(metrics)       
+    df = pd.DataFrame.from_dict(metrics)
     df.to_csv(os.path.join(model_save_path, "summarized_metrics.csv"))
     return metrics

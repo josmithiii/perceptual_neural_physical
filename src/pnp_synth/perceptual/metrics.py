@@ -21,9 +21,8 @@ class JTFSloss(Metric):
         self.scaler = scaler
         if torch.cuda.is_available():
             device = "cuda"
-        elif torch.backends.mps.is_available():
-            device = "mps"
         else:
+            # Use CPU for compatibility with auraloss and other audio processing libraries
             device = "cpu"
         self.curr_device = device
         self.mode = mode
@@ -54,13 +53,19 @@ class JTFSloss(Metric):
         jtfs_targets = torch.stack(wav_gt)
         jtfs_preds = torch.stack(wav_pred) #(bs, #path)
 
+        # Ensure both tensors are on the same device
+        device = jtfs_targets.device
+        jtfs_preds = jtfs_preds.to(device)
+
         #check if any output is nan
         if weights is None:
             weights = 1
         if self.mode == "macro":
-            self.dist += torch.nanmean(torch.norm(jtfs_preds - jtfs_targets, p=2, dim=1)) #mean over each batch
+            result = torch.nanmean(torch.norm(jtfs_preds - jtfs_targets, p=2, dim=1)) #mean over each batch
+            self.dist += result.to(self.dist.device)
         elif self.mode == "micro":
-            self.dist += torch.nanmean(weights * torch.norm(jtfs_preds - jtfs_targets, p=2, dim=1)).squeeze()
+            result = torch.nanmean(weights * torch.norm(jtfs_preds - jtfs_targets, p=2, dim=1)).squeeze()
+            self.dist += result.to(self.dist.device)
         self.total += 1 #accumulate number of steps (number of batches)
         #return self.dist
 
@@ -78,9 +83,8 @@ class MSSloss(Metric):
         self.scaler = scaler
         if torch.cuda.is_available():
             device = "cuda"
-        elif torch.backends.mps.is_available():
-            device = "mps"
         else:
+            # Use CPU for compatibility with auraloss and other audio processing libraries
             device = "cpu"
         self.curr_device = device
         self.synth_type = synth_type
@@ -106,7 +110,13 @@ class MSSloss(Metric):
 
         wav_gt = torch.stack(wav_gt)
         wav_pred = torch.stack(wav_pred)
-        self.dist += auraloss.freq.MultiResolutionSTFTLoss()(wav_pred.unsqueeze(1), wav_gt.unsqueeze(1))
+
+        # Move tensors to CPU for auraloss compatibility
+        wav_pred_cpu = wav_pred.cpu()
+        wav_gt_cpu = wav_gt.cpu()
+
+        mss_loss = auraloss.freq.MultiResolutionSTFTLoss()(wav_pred_cpu.unsqueeze(1), wav_gt_cpu.unsqueeze(1))
+        self.dist += mss_loss.to(self.dist.device)
         self.total += 1 #accumulate number of steps (number of batches)
 
     def compute(self):

@@ -682,6 +682,24 @@ class DrumDataModule(pl.LightningDataModule):
         elif "mersenne" in weight_dir:
             self.synth_type = "string"
             self.h5name = "mersenne24"
+        else:
+            # Fallback: check directory contents to determine synth_type
+            import os
+            if os.path.exists(weight_dir):
+                files = os.listdir(weight_dir)
+                if any("ftm" in f for f in files):
+                    self.synth_type = "ftm"
+                    self.h5name = "ftm"
+                elif any("amchirp" in f or "am" in f for f in files):
+                    self.synth_type = "amchirp"
+                    self.h5name = "amchirp"
+                elif any("mersenne" in f for f in files):
+                    self.synth_type = "string"
+                    self.h5name = "mersenne24"
+                else:
+                    # Default fallback
+                    self.synth_type = "ftm"
+                    self.h5name = "ftm"
         self.noise_dir = noise_dir
         self.noise_mode = noise_mode
 

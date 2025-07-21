@@ -33,13 +33,18 @@ save_freq = 10
 
 eff_type = sys.argv[1]
 opt = sys.argv[2]
-init_id = int(sys.argv[3])
+init_id = sys.argv[3]
+# Convert to int if it's numeric, otherwise keep as string
+try:
+    init_id = int(init_id)
+except ValueError:
+    pass  # Keep as string
 
 if eff_type == "b0":
-        batch_size = 256
+        batch_size = 32  # Match the training batch_size
 else:
         batch_size = 128
 
-doce.eval(save_dir, init_id, batch_size, 
+doce.eval(save_dir, init_id, batch_size,
         loss_type, eff_type, minmax, logscale_theta, finetune,
         opt, save_freq, epoch_max)

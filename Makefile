@@ -153,7 +153,7 @@ dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "  cd taslp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID)"
 
 
-# Quick experiment runners (if data exists)
+# Experiment runners (if data exists)
 ri23pl run-icassp23-ploss:
 	@echo "Training EfficientNet with P-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
@@ -191,7 +191,7 @@ ri25all: ri23pnpl ri25pl ri25pnpl
 
 ei25pl eval-icassp25-ploss:
 	@echo "Evaluating P-loss model (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam 0
+	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam test
 
 ei25pnp eval-icassp25-pnp:
 	@echo "Evaluating PNP model (ICASSP25)..."
