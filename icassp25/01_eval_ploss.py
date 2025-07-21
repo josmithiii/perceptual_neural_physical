@@ -41,7 +41,7 @@ except ValueError:
     pass  # Keep as string
 
 if eff_type == "b0":
-        batch_size = 32  # Match the training batch_size
+        batch_size = 64  # Increased for better GPU utilization
 else:
         batch_size = 128
 

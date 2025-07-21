@@ -29,12 +29,15 @@ class JTFSloss(Metric):
         self.synth_type = synth_type
         self.logscale = logscale
 
+        # Cache JTFS operator to avoid recreating it for each batch
+        jtfs_params = utils.jtfsparam(self.synth_type)
+        self.jtfs_operator = TimeFrequencyScattering1D(**jtfs_params, out_type="list").to(self.curr_device)
+        self.jtfs_operator.average_global = True
+
     def update(self, preds: torch.Tensor, target: torch.Tensor, weights: torch.Tensor): #update at each step
         assert preds.shape == target.shape
-        jtfs_params = utils.jtfsparam(self.synth_type)
-        jtfs_operator = TimeFrequencyScattering1D(**jtfs_params, out_type="list").to(self.curr_device)
-        jtfs_operator.average_global = True
-        phi = functools.partial(utils.S_from_x, jtfs_operator=jtfs_operator)
+        # Use cached JTFS operator
+        phi = functools.partial(utils.S_from_x, jtfs_operator=self.jtfs_operator)
         g = functools.partial(utils.x_from_theta, synth_type=self.synth_type, logscale=self.logscale)
 
         #loop over batch - temporary

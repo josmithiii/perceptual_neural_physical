@@ -124,7 +124,7 @@ def train(save_dir, init_id, batch_size,
         Q=Q,
         sr=sr,
         scaler=scaler,
-        num_workers=0
+        num_workers=4  # Parallel data loading for better performance
     )
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
@@ -314,7 +314,7 @@ def eval(save_dir, init_id, batch_size,
         Q=Q,
         sr=sr,
         scaler=scaler,
-        num_workers=0
+        num_workers=4  # Parallel data loading for better performance
     )
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
