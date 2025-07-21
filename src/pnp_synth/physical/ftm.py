@@ -29,36 +29,37 @@ constants_string = {
 
 
 def rectangular_drum(theta, logscale, **constants):
-    device = utils.get_device()
+    # Use the same device as the input tensor
+    device = theta.device
     w11 = 10 ** theta[0] if logscale else theta[0]
     p = 10 ** theta[2] if logscale else theta[2]
     D = 10 ** theta[3] if logscale else theta[3]
     #theta
     tau11 = theta[1]
     alpha_side = theta[4]
-    l0 = torch.tensor(constants['l0']).to(device)
+    l0 = torch.tensor(constants['l0'], dtype=theta.dtype).to(device)
 
-    l2 = l0 * alpha_side 
-    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
+    l2 = l0 * alpha_side
+    pi = torch.tensor(np.pi, dtype=theta.dtype).to(device)
 
     beta_side = alpha_side + 1 / alpha_side
     S = l0 / pi * ((D * w11 * alpha_side)**2 + (p * alpha_side / tau11)**2)**0.25
     c_sq = (
-        alpha_side * (1 / beta_side - p**2 * beta_side) / tau11**2 
+        alpha_side * (1 / beta_side - p**2 * beta_side) / tau11**2
         + alpha_side * w11**2 * (1 / beta_side - D**2 * beta_side)
     ) * (l0 / np.pi)**2
     T = c_sq # scalar
     d1 = 2 * (1 - p * beta_side) / tau11
-    d3 = -2 * p * alpha_side / tau11 * (l0 / pi) **2 
+    d3 = -2 * p * alpha_side / tau11 * (l0 / pi) **2
 
-    EI = S ** 4 
+    EI = S ** 4
 
-    mu = torch.arange(1, constants['m1'] + 1).to(device) #(m1,)
-    mu2 = torch.arange(1, constants['m2'] + 1).to(device) #(m2,)
+    mu = torch.arange(1, constants['m1'] + 1, dtype=theta.dtype).to(device) #(m1,)
+    mu2 = torch.arange(1, constants['m2'] + 1, dtype=theta.dtype).to(device) #(m2,)
     dur = constants['dur']
-    
+
     n = (mu[:,None] * pi / l0) ** 2 + (mu2[None,:] * pi / l2)**2 #(m1,m2)
-    n2 = n ** 2 
+    n2 = n ** 2
     K = torch.sin(mu[:,None] * pi * constants['x1']) * torch.sin(mu2[None,:] * pi * constants['x2']) #(m1,m2)
 
     beta = EI * n2 + T * n #(m1, m2)
@@ -71,13 +72,13 @@ def rectangular_drum(theta, logscale, **constants):
     mode2_corr = constants['m2'] - max(torch.sum(mode_rejected, dim=1)) if constants['m2']-max(torch.sum(mode_rejected, dim=1))!=0 else constants['m2']
     N = l0 * l2 / 4
     yi = (
-        constants['h'] 
-        * torch.sin(mu[:, None] * pi * constants['x1']) 
-        * torch.sin(mu2[None, :] * pi * constants['x2']) 
+        constants['h']
+        * torch.sin(mu[:, None] * pi * constants['x1'])
+        * torch.sin(mu2[None, :] * pi * constants['x2'])
         / omega #(m1, m2)
-    ) 
+    )
 
-    time_steps = torch.linspace(0, dur, dur).to(device) / constants['sr'] #(T,)
+    time_steps = torch.linspace(0, dur, dur, dtype=theta.dtype).to(device) / constants['sr'] #(T,)
     y = torch.exp(-alpha[:,:,None] * time_steps[None, None, :]) * torch.sin(
         omega[:,:,None] * time_steps[None,None,:]
     ) # (m1, m2, T)
@@ -130,8 +131,8 @@ def linearstring_percep(theta, logscale, **constants_string):
     Ts0 = c2 * lm
 
     mu = torch.arange(1, constants_string["m"] + 1).to(device)
-    n = (mu * pi / ell) ** 2 
-    n2 = n ** 2 
+    n = (mu * pi / ell) ** 2
+    n2 = n ** 2
     K = torch.sin(mu * pi * constants_string["x"])
 
     beta = EI * n2 + Ts0 * (-n) #(m)
@@ -140,14 +141,14 @@ def linearstring_percep(theta, logscale, **constants_string):
     #adaptively change mode number according to nyquist frequency
     mode_rejected = (omega / 2 / pi) > constants_string['sr'] / 2
     mode_corr = constants_string['m'] - torch.sum(mode_rejected)
-   
+
     N = ell / 2
     yi = (
         constants_string['h']
         * torch.sin(mu * pi * constants_string["x"]) #this should be the listening position
         / omega #(mode)
     )
-  
+
     time_steps = torch.linspace(0, dur, dur).to(device) / constants_string['sr'] #(T,)
 
     y = torch.exp(-alpha[:,None] * time_steps[ None, :]) * torch.sin(
@@ -184,14 +185,14 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
 
 
     mu = torch.arange(1, constants_string["m"] + 1).to(device)
-    n = (mu * pi / ell) ** 2 
-    n2 = n ** 2 
+    n = (mu * pi / ell) ** 2
+    n2 = n ** 2
     K = torch.sin(mu * pi * pos_ratio)
-  
+
     beta = EI * n2 + Ts0 * n #(m)
     alpha = (d1 + d3 * n)/(2*lm) # nonlinear
     # TODO: there should be constraint in how alpha should be, in case it exceeds beta!!!
-    
+
     omega = torch.sqrt(beta/(lm) - alpha**2)
     #adaptively change mode number according to nyquist frequency
     mode_rejected = (omega / 2 / pi) > constants_string['sr'] / 2
@@ -205,7 +206,7 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
             * torch.sin(mu * pi * pos_ratio) #this should be the listening position
             / omega #(mode)
         )
-    
+
         time_steps = torch.linspace(0, dur, dur).to(device) / constants_string['sr'] #(T,)
 
         y = torch.exp(-alpha[:,None] * time_steps[ None, :]) * torch.sin(

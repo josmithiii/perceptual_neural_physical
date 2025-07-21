@@ -170,6 +170,10 @@ ai25 audio-icassp25:
 	cd icassp25/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/icassp25
 	@echo "✓ ICASSP25 audio data generated"
 
+Mi25 M-icassp25:
+	@echo "Computing PNP Jacobian matrices for ICASSP25..."
+	cd icassp25/ && source ../.venv/bin/activate && python 01b_compute_pnp_jacobian.py $(SAVE_DIR)/icassp25
+
 # ICASSP25 experiment runners
 ri25pl run-icassp25-ploss:
 	@echo "Training EfficientNet with P-loss (ICASSP25)..."

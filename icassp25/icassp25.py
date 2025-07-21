@@ -52,7 +52,7 @@ def load_fold(fold="full"):
         return full_df[full_df["fold"]==fold]
 
 
-def pnp_forward_factory(scaler):
+def pnp_forward_factory(scaler, logscale=True):
     """
     Computes S = (Phi o g o h^{-1})(nu) = (Phi o g)(theta) = Phi(x), given:
     1. a MinMax scaler h
@@ -64,9 +64,10 @@ def pnp_forward_factory(scaler):
     jtfs_operator.average_global = True
 
     Phi = functools.partial(S_from_x, jtfs_operator=jtfs_operator)
+    g = functools.partial(x_from_theta, logscale=logscale)
 
     return functools.partial(
-        forward.pnp_forward, Phi=Phi, g=x_from_theta, scaler=scaler
+        forward.pnp_forward, Phi=Phi, g=g, scaler=scaler
     )
 
 
@@ -126,21 +127,22 @@ def S_from_x(x, jtfs_operator):
     return log1p_Sx
 
 
-def x_from_theta(theta):
+def x_from_theta(theta, logscale):
     """Drum synthesizer, based on the Functional Transformation Method (FTM)."""
     x = ftm.rectangular_drum(theta, logscale, **ftm.constants)
     return x
 
-def pnp_forward_factory_mss(scaler):
+def pnp_forward_factory_mss(scaler, logscale=True):
     """
     Computes S = (Phi o g o h^{-1})(nu) = (Phi o g)(theta) = Phi(x), given:
     1. a MinMax scaler h
     2. an FTM synthesizer g
     3. a JTFS representation Phi
     """
+    g = functools.partial(x_from_theta, logscale=logscale)
 
     return functools.partial(
-        forward.pnp_forward, Phi=MultiScaleSpectralLoss(), g=x_from_theta, scaler=scaler
+        forward.pnp_forward, Phi=MultiScaleSpectralLoss(), g=g, scaler=scaler
     )
 
 class MultiScaleSpectralLoss(nn.Module):
