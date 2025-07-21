@@ -151,7 +151,7 @@ dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "Note: This demo requires audio generation - see taslp23/ directory for full pipeline"
 	@echo "Example commands:"
 	@echo "  cd taslp23/ && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio"
-	(cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID))
+	(cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID) 1 1 adam ftm)
 
 
 # Experiment runners (if data exists)
