@@ -85,7 +85,7 @@ if __name__ == "__main__":
     model_save_path = os.path.join(
         model_dir,
         "_".join([
-            eff_type, 
+            eff_type,
             loss_type,
             "finetune" + str(finetune),
             "log-" + str(logscale_theta),
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     os.makedirs(model_save_path, exist_ok=True)
     pred_path = os.path.join(model_save_path, "test_predictions.npy")
 
-    if minmax: 
+    if minmax:
         nus, scaler = icassp25.scale_theta(logscale_theta)
     else:
         scaler = None
@@ -129,13 +129,13 @@ if __name__ == "__main__":
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function
     model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
-                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch, 
-                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax, 
+                       scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch,
+                       var=bn_var, save_path=pred_path, lr=lr, minmax=minmax,
                        logtheta=logscale_theta, opt=opt)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
     # initialize checkpoint methods
-    # save best checkpoint 
+    # save best checkpoint
     if loss_type == "ploss":
         abbr_loss = "p"
     elif loss_type == "weighted_p":
@@ -168,11 +168,13 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         accelerator = "gpu"
         devices = -1
+    elif torch.backends.mps.is_available():
+        accelerator = "mps"
+        devices = 1
     else:
-        # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
         accelerator = "cpu"
         devices = 1
-        
+
     trainer = pl.Trainer(
         accelerator=accelerator,
         devices=devices,
@@ -192,7 +194,7 @@ if __name__ == "__main__":
     trainer.fit(model, dataset) # whatever loss is used for training
 
     #extract tensorboard logs
-    
+
 
 
     print(str(datetime.datetime.now()) + " Success.")
@@ -204,5 +206,5 @@ if __name__ == "__main__":
         elapsed_hours, elapsed_minutes, elapsed_seconds
     )
     print("Total elapsed time: " + elapsed_str + ".")
-    
-    
+
+
