@@ -10,7 +10,9 @@
       "Bash(git clone:*)",
       "Bash(mkdir:*)",
       "Bash(ln:*)",
-      "Bash(timeout 30 make ei25grad)"
+      "Bash(timeout 30 make ei25grad)",
+      "Bash(timeout 30 source ../.venv/bin/activate)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
