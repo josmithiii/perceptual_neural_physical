@@ -22,9 +22,24 @@ except ImportError:
 import librosa
 import pickle
 
+def to_precision(tensor, target_device=None):
+    """Convert tensor to appropriate precision based on device (float32 for MPS, float64 for others)"""
+    if target_device is not None:
+        tensor = tensor.to(target_device)
+
+    if tensor.device.type == 'mps':
+        return tensor.float()
+    else:
+        return tensor.double()
+
+def create_tensor_with_precision(creation_fn, reference_tensor):
+    """Create a new tensor with appropriate precision based on reference tensor's device"""
+    new_tensor = creation_fn()
+    return to_precision(new_tensor, reference_tensor.device)
 
 
-#from Sophia import SophiaG 
+
+#from Sophia import SophiaG
 
 #logscale param
 eps = 1e-3
@@ -79,8 +94,8 @@ class EffNet(pl.LightningModule):
                     self.act = nn.Softplus() #guarantees nonzero and improves gradient
                 else:
                     self.act = nn.LeakyReLU() #nn.Softplus()
-                
-            
+
+
         self.loss_type = loss
         if self.loss_type == "ploss":
             self.loss = F.mse_loss
@@ -142,12 +157,14 @@ class EffNet(pl.LightningModule):
         self.mu = mu
     def forward(self, input_tensor):
         input_tensor = input_tensor.unsqueeze(1)
+        # Ensure tensor is on the same device as batchnorm weights
+        input_tensor = input_tensor.to(self.batchnorm1.weight.device)
         x = self.batchnorm1(input_tensor)
         x = self.conv2d(x) # adapt to efficientnet's mandatory 3 input channels
         x = self.model(x)
         if self.minmax:
             x = self.batchnorm2(x) * self.std
-        x = self.act(x) 
+        x = self.act(x)
         #if not self.minmax and not self.logtheta and self.loss_type == "spec":
         #    x = torch.abs(x) + eps_relu
         return x
@@ -175,12 +192,12 @@ class EffNet(pl.LightningModule):
         except:
             metric_weight, JdagJ = None, None
 
-        outputs = self(Sy) 
+        outputs = self(Sy)
         assert outputs.shape[1] == self.outdim
         # match outputs and y dimension
         if outputs.shape[1] == 4 and y.shape[1] == 5:
             outputs = torch.cat((y[:,0][:,None], outputs),dim=1)
-        
+
         #compute loss function
         if self.loss_type == "spec" or self.loss_type == "specl2":
             loss = self.loss(outputs, y, self.specloss, self.scaler, self.synth_type, self.logtheta)
@@ -189,9 +206,9 @@ class EffNet(pl.LightningModule):
         else:
             if self.loss_type == "weighted_p":
                 if fold == "val" or fold == "test":
-                    D = torch.zeros(M.shape).double()
+                    D = create_tensor_with_precision(lambda: torch.zeros(M.shape), M)
                 elif self.LMA_damping == "id":
-                    D = torch.eye(M.shape[1]).double()[None, :, :]
+                    D = create_tensor_with_precision(lambda: torch.eye(M.shape[1])[None, :, :], M)
                 elif self.LMA_damping == "diag":
                     diags = torch.diagonal(M, dim1=-1, dim2=-2) #(bs, 5)
                     D = torch.diag_embed(diags)
@@ -199,13 +216,18 @@ class EffNet(pl.LightningModule):
                     D = M_mean
                 D = self.LMA_lambda * D.to(self.current_device)
                 M = M + D
+                # Ensure all tensors are on same device and use appropriate precision
                 loss = self.loss(
-                    weight[:, None] * outputs.double(),
-                    y.double(),
+                    to_precision(weight[:, None], outputs.device) * to_precision(outputs),
+                    to_precision(y, outputs.device),
                     self.mu * M
                 )
             else: #ploss
-                loss = self.loss(weight[:,None].double() * outputs.double(), y.double())
+                # Ensure all tensors are on same device and use appropriate precision
+                loss = self.loss(
+                    to_precision(weight[:,None], outputs.device) * to_precision(outputs),
+                    to_precision(y, outputs.device)
+                )
 
         #compute metrics
         if fold == "test":
@@ -215,7 +237,7 @@ class EffNet(pl.LightningModule):
             self.test_preds.append(outputs)
             self.test_gts.append(y)
             self.Ms.append(M)
-        
+
         if fold == "train":
             self.train_outputs.append(loss)
             if self.opt == None:
@@ -229,15 +251,15 @@ class EffNet(pl.LightningModule):
 
         elif fold == "test":
             self.test_outputs.append(loss)
-            self.ploss_test.append(F.mse_loss(outputs.double(), y.double()))
+            self.ploss_test.append(F.mse_loss(to_precision(outputs), to_precision(y, outputs.device)))
         elif fold == "val":
             self.val_outputs.append(loss)
             #self.mss_validation.update(outputs, y)
-            #if self.epoch % 10 == 0: 
+            #if self.epoch % 10 == 0:
             #    self.jtfs_validation.update(outputs, y, None)
             #compute comparable validation loss
-            self.ploss_validation.append(F.mse_loss(outputs.double(), y.double()))
-            #self.log("ploss metrics", F.mse_loss(outputs.double(), y.double()))
+            self.ploss_validation.append(F.mse_loss(to_precision(outputs), to_precision(y, outputs.device)))
+            #self.log("ploss metrics", F.mse_loss(to_precision(outputs), to_precision(y, outputs.device)))
         return {'loss': loss}
 
     def training_step(self, batch, batch_idx):
@@ -260,11 +282,11 @@ class EffNet(pl.LightningModule):
     def on_train_epoch_end(self):
         avg_loss = torch.tensor(self.train_outputs).mean()
         self.log('train_loss', avg_loss, prog_bar=True)
-    
+
     def on_test_epoch_end(self):
         avg_loss = torch.tensor(self.test_outputs).mean()
         avg_ploss_test = torch.tensor(self.ploss_test).mean()
-        avg_macro_metric = self.metric_macro.compute() 
+        avg_macro_metric = self.metric_macro.compute()
         avg_micro_metric = self.metric_micro.compute()
         avg_mss_metric = self.metric_mss.compute()
         self.log('test_loss', avg_loss)
@@ -276,12 +298,12 @@ class EffNet(pl.LightningModule):
         self.test_preds = torch.stack(self.test_preds)
         try:
             self.Ms = torch.stack(self.Ms)
-            np.save(self.save_path, [[self.test_gts.detach().cpu().numpy(), 
+            np.save(self.save_path, [[self.test_gts.detach().cpu().numpy(),
                                 self.test_preds.detach().cpu().numpy()],
                                 self.Ms.detach().cpu().numpy()],allow_pickle=True)
         except:
             self.Ms = None
-            np.save(self.save_path, [self.test_gts.detach().cpu().numpy(), 
+            np.save(self.save_path, [self.test_gts.detach().cpu().numpy(),
                                     self.test_preds.detach().cpu().numpy()],
                                     allow_pickle=True)
 
@@ -308,7 +330,7 @@ class EffNet(pl.LightningModule):
                     else:
                         self.LMA_lambda = self.LMA_threshold
                     self.parameters = self.best_params # revert to best model
-                
+
                 #disregard the monitor_valloss at the first evaluation
                 #if self.epoch == 1:
                 #    self.best_params = self.parameters
@@ -330,18 +352,18 @@ class EffNet(pl.LightningModule):
         #    self.log("epoch jtfs metrics", avg_jtfs_validation)
         #self.log("epoch mss metrics", avg_mss_validation)
         self.log("ploss_metrics", avg_ploss_validation)
-        
+
         return {'val_loss': avg_loss, 'ploss_metrics': avg_ploss_validation}
 
     def configure_optimizers(self):
-        if self.opt == "adamW": 
-            self.optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=1e-1) #decoupled weight decay regularization 
+        if self.opt == "adamW":
+            self.optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=1e-1) #decoupled weight decay regularization
             #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             #    optim, T_0=1, T_mult=1, eta_min=1e-8,
             #    last_epoch=-1, verbose=0)
             lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer, patience=3)
-            
+
             return {
                 'optimizer': self.optimizer,
                 'lr_scheduler': {
@@ -424,7 +446,7 @@ class DrumData(Dataset):
         self.noise_dir = noise_dir
         self.weights_dir = weights_dir
         self.weight_type = weight_type
-        
+
         #make list of noise pitches
         if self.noise_dir:
             self.snr_dir = os.path.join(os.path.dirname(audio_dir), "snr_dict.pkl")
@@ -432,7 +454,7 @@ class DrumData(Dataset):
             self.isnoise = True
             self.noise_mode = noise_mode
             self.noisemodel = noisemodel
-            
+
             if self.noise_mode == "statgauss": # no straightforward way to align weight measure to snr measures
                 self.noise_gen = muda.deformers.ColoredNoise(n_samples=1, color=['pink'], weight_max=0.08, weight_min=0.01)
         else:
@@ -449,7 +471,7 @@ class DrumData(Dataset):
             cqt_params = {
                     'sr': self.sr,
                     'n_bins': self.J * self.Q,
-                    'hop_length': 256, 
+                    'hop_length': 256,
                     }
             #find fmin
             if 2**self.J * 32.7 >= cqt_params['sr']/2:
@@ -462,7 +484,7 @@ class DrumData(Dataset):
             self.M_mean, self.sigma_mean, self.lambda0 = self.make_M_mean()
         except:
             self.M_mean, self.sigma_mean, self.lambda0 = None, None, None
-    
+
         # Initialize joblib Memory object
         # self.cqt_memory = joblib.Memory(cqt_dir, verbose=0)
         # self.cqt_from_id = self.cqt_memory.cache(self.cqt_from_id)
@@ -564,12 +586,12 @@ class DrumData(Dataset):
         # insert code to mix in noise
         if self.isnoise:
             if self.noise_mode != "statgauss":
-                #randomly select noise, or the noise with the closest pitch 
+                #randomly select noise, or the noise with the closest pitch
                 if "test" in self.audio_dir:
                     noise_ids = self.test_noise_ids
-                elif "train" in self.audio_dir:                 
+                elif "train" in self.audio_dir:
                     noise_ids = self.train_noise_ids
-                elif "val" in self.audio_dir:       
+                elif "val" in self.audio_dir:
                     noise_ids = self.val_noise_ids
 
                 idx, idx2 = np.random.choice(np.arange(len(noise_ids)), size=2)
@@ -610,19 +632,19 @@ class DrumData(Dataset):
                 j_orig = muda.jam_pack(jam, _audio=dict(y=x, sr=self.sr))
                 for j_new in self.noise_gen.transform(j_orig):
                     x = j_new.sandbox.muda._audio["y"]
-                   
+
         device = utils.get_device()
         x = torch.tensor(x, dtype=torch.float32).to(device)
         Sy = self.cqt_from_x(x)[0]
         Sy = torch.log1p(Sy/eps)
         return Sy
- 
+
 
 class DrumDataModule(pl.LightningDataModule):
     def __init__(self,
                  data_dir,
                  cqt_dir,
-                 df, 
+                 df,
                  weight_dir,
                  weight_type,
                  batch_size,
@@ -664,7 +686,7 @@ class DrumDataModule(pl.LightningDataModule):
         self.noise_mode = noise_mode
 
     def setup(self, stage=None):
-        
+
 
         y_norms_train= utils.scale_theta(self.full_df, "train", self.scaler, self.logscale, self.synth_type) #sorted by id
         y_norms_test = utils.scale_theta(self.full_df, "test", self.scaler, self.logscale, self.synth_type)
@@ -678,7 +700,7 @@ class DrumDataModule(pl.LightningDataModule):
                                 train_ids,
                                 os.path.join(self.data_dir, self.h5name + "_train_audio.h5"),
                                 self.cqt_dir,
-                                os.path.join(self.weight_dir, self.h5name + "_train_J.h5"), 
+                                os.path.join(self.weight_dir, self.h5name + "_train_J.h5"),
                                 self.weight_type,
                                 fold='train',
                                 feature='cqt',
@@ -733,9 +755,9 @@ class DrumDataModule(pl.LightningDataModule):
         except:
             M_mean = None
         try:
-            metric_weight = torch.stack([s['metric_weight'] for s in batch])           
+            metric_weight = torch.stack([s['metric_weight'] for s in batch])
             JdagJ = torch.stack([s['JdagJ'] for s in batch])
-        except: 
+        except:
             metric_weight, JdagJ = None, None
         try:
             lambda0 = batch[0]['lambda0']
