@@ -5,7 +5,7 @@ FTM stands for Functional Transformation Method.
 """
 import datetime
 import h5py
-import icassp23
+import taslp23
 import numpy as np
 import os
 import pandas as pd
@@ -15,6 +15,7 @@ import random
 import sys
 import soundfile as sf
 import time
+import torch
 
 # Print header
 start_time = int(time.time())
@@ -33,10 +34,13 @@ audio_dir = os.path.join(save_dir, "x")
 os.makedirs(audio_dir, exist_ok=True)
 logscale = True #the csv files are storing logscaled parameters
 
-for fold in icassp23.FOLDS:
+synth_type = "ftm"  # Default synthesis type for TASLP23
+THETA_COLUMNS = ["omega", "tau", "p", "D", "alpha"]  # FTM parameters
+
+for fold in taslp23.FOLDS:
     # Define path to HDF5 file
-    fold_df = icassp23.load_fold(fold)
-    h5_name = "icassp23_{}_audio.h5".format(fold)
+    fold_df = taslp23.load_fold(synth_type, fold)
+    h5_name = "taslp23_{}_audio.h5".format(fold)
     h5_path = os.path.join(audio_dir, h5_name)
 
     # Create HDF5 file
@@ -55,8 +59,9 @@ for fold in icassp23.FOLDS:
         #i, row = irow
 
         # Physical audio synthesis (g). theta -> x
-        theta = np.array([row[column] for column in icassp23.THETA_COLUMNS])
-        x = ftm.rectangular_drum(theta, logscale, **ftm.constants)
+        theta = np.array([row[column] for column in THETA_COLUMNS])
+        theta_tensor = torch.tensor(theta, dtype=torch.float32)
+        x = ftm.rectangular_drum(theta_tensor, logscale, **ftm.constants)
         key = str(row["ID"])
 
         # Append to HDF5 file

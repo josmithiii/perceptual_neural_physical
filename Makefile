@@ -143,6 +143,7 @@ $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5:
 	(cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio)
 
 at23 audio-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
+	@echo "✓ TASLP23 audio data generated"
 
 dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "Running TASLP23 demo pipeline..."
@@ -150,7 +151,7 @@ dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
 	@echo "Note: This demo requires audio generation - see taslp23/ directory for full pipeline"
 	@echo "Example commands:"
 	@echo "  cd taslp23/ && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio"
-	@echo "  cd taslp23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID)"
+	(cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23_models $(INIT_ID))
 
 
 # Experiment runners (if data exists)
