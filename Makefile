@@ -191,7 +191,8 @@ ri25all: ri23pnpl ri25pl ri25pnpl
 
 ei25pl eval-icassp25-ploss:
 	@echo "Evaluating P-loss model (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam test
+	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam test > ei25pl_log_`shortdate`.txt 2>&1 &
+	tail -f icassp25/ei25pl_log_`shortdate`.txt
 
 ei25pnp eval-icassp25-pnp:
 	@echo "Evaluating PNP model (ICASSP25)..."

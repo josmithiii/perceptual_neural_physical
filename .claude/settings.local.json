@@ -12,7 +12,12 @@
       "Bash(ln:*)",
       "Bash(timeout 30 make ei25grad)",
       "Bash(timeout 30 source ../.venv/bin/activate)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(cd /Users/jos/w/perceptual_neural_physical)",
+      "Bash(timeout 180 make ei25pl)",
+      "Bash(timeout 300 make ei25pl)",
+      "Bash(timeout 600 make ei25pl)"
     ],
     "deny": []
   }
