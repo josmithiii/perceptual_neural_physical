@@ -32,7 +32,7 @@ opt = sys.argv[5]
 synth_type = sys.argv[6]
 
 batch_size = 256
-is_train = False
+is_train = True
 
 print("Command-line arguments:\n" + "\n".join(sys.argv[1:]))
 print(f"Batch size: {batch_size}\n")
@@ -78,7 +78,12 @@ lr = 1e-3
 finetune = False
 
 if __name__ == "__main__":
-    print("Current device: ", torch.cuda.get_device_name(0))
+    if torch.cuda.is_available():
+        print("Current device: ", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        print("Current device: MPS (Apple Silicon GPU)")
+    else:
+        print("Current device: CPU")
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -98,7 +103,7 @@ if __name__ == "__main__":
     os.makedirs(model_save_path, exist_ok=True)
     pred_path = os.path.join(model_save_path, "test_predictions.npy")
 
-    if minmax: 
+    if minmax:
         nus, scaler = taslp23.scale_theta(logscale_theta, synth_type)
     else:
         scaler = None
@@ -122,6 +127,10 @@ if __name__ == "__main__":
         scaler=scaler,
         num_workers=0
     )
+
+    # Add required attributes since DrumDataModule always uses FTM
+    dataset.synth_type = synth_type
+    dataset.h5name = "taslp23"
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function
@@ -166,7 +175,7 @@ if __name__ == "__main__":
         ckpt_path = os.path.join(model_save_path, 'best.ckpt')
         print("Load Pretrained model")
         model = model.load_from_checkpoint(
-            ckpt_path, 
+            ckpt_path,
             in_channels=1, outdim=outdim, loss=loss_type, scaler=scaler,
             var=bn_var, save_path=pred_path, steps_per_epoch=steps_per_epoch, lr=lr, LMA=LMA, minmax=minmax,logtheta=logscale_theta, opt=opt)
     test_loss = trainer.test(model, dataset, verbose=False)

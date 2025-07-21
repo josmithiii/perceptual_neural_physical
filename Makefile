@@ -30,9 +30,15 @@ h help:
 	@echo "  demo-gretsi23       - Run basic GRETSI23 pipeline demo"
 	@echo "  demo-taslp23        - Run basic TASLP23 pipeline demo"
 	@echo ""
-	@echo "ICASSP25 Training:"
-	@echo "  ri25pl         - Train EfficientNet with P-loss"
-	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss"
+	@echo "Training:"
+	@echo "  ri23pl         - Train EfficientNet with P-loss (ICASSP23)"
+	@echo "  ri23pnpl       - Train EfficientNet with PNP-loss (ICASSP23)"
+	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23)"
+	@echo "  rt23pnpl       - Train EfficientNet with PNP-loss (TASLP23)"
+	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
+	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss (ICASSP25)"
+	@echo ""
+	@echo "Evaluation:"
 	@echo "  ei25pl         - Evaluate P-loss model"
 	@echo "  ei25pnp        - Evaluate PNP model"
 	@echo "  ei25grad       - Evaluate gradients (batch_size=32)"
@@ -162,6 +168,14 @@ ri23pl run-icassp23-ploss:
 ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
+
+rt23pl run-taslp23-ploss:
+	@echo "Training EfficientNet with P-loss (TASLP23)..."
+	cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23pnpl run-taslp23-pnploss:
+	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
+	cd taslp23/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
 
 # ICASSP25 data generation using FTM modal drum synthesis
