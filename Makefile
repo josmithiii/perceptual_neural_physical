@@ -151,6 +151,9 @@ $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
 at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "✓ TASLP23 audio data generated"
 
+cat23 clean-audio-taslp23:
+	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
+
 dt23 demo-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Running TASLP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
