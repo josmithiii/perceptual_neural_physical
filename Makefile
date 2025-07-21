@@ -138,14 +138,14 @@ dg23 demo-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
 	@echo "  cd gretsi23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/gretsi23_models $(INIT_ID)"
 
 # File target - only runs if output doesn't exist  
-$(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5:
+$(SAVE_DIR)/taslp23_audio/x/taslp23_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)
 	(cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23_audio)
 
-at23 audio-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
+at23 audio-taslp23: $(SAVE_DIR)/taslp23_audio/x/taslp23_train_audio.h5
 	@echo "✓ TASLP23 audio data generated"
 
-dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/taslp23_train_audio.h5
+dt23 demo-taslp23: $(SAVE_DIR)/taslp23_audio/x/taslp23_train_audio.h5
 	@echo "Running TASLP23 demo pipeline..."
 	@mkdir -p $(SAVE_DIR)
 	@echo "Note: This demo requires audio generation - see taslp23/ directory for full pipeline"
