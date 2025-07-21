@@ -17,7 +17,8 @@
       "Bash(cd /Users/jos/w/perceptual_neural_physical)",
       "Bash(timeout 180 make ei25pl)",
       "Bash(timeout 300 make ei25pl)",
-      "Bash(timeout 600 make ei25pl)"
+      "Bash(timeout 600 make ei25pl)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

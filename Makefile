@@ -177,6 +177,12 @@ rt23pnpl run-taslp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
 	cd taslp23/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
+rt23o run-taslp23-observation:
+	@echo "Starting TensorBoard for TASLP23 training..."
+	(cd /Users/jos/w/perceptual_neural_physical && source .venv/bin/activate && \
+	tensorboard --logdir taslp23/outputs/taslp23/f_W/ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size256_lr-0.001_init-test/logs) &
+	@echo "TensorBoard running in background at http://localhost:6006"
+	@echo "To stop TensorBoard later: pkill -f tensorboard"
 
 # ICASSP25 data generation using FTM modal drum synthesis
 ai25 audio-icassp25:
