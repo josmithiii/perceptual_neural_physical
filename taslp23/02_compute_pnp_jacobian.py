@@ -3,7 +3,10 @@ This script calculates the JTFS coefficients and the associated Jacobian
 with respect to each normalized parameter.
 """
 import datetime
-import functorch
+try:
+    from torch.func import jacfwd
+except ImportError:
+    from functorch import jacfwd
 import functools
 import taslp23
 import kymatio
@@ -24,7 +27,8 @@ save_dir = sys.argv[1]
 id_start = int(sys.argv[2])
 id_end = int(sys.argv[3])
 logscale = int(sys.argv[4])
-synth_type = int(sys.argv[5])
+synth_type_int = int(sys.argv[5])
+synth_type = "ftm" if synth_type_int == 0 else "amchirp"
 minmax = int(sys.argv[6])
 
 print("Command-line arguments:\n" + "\n".join(sys.argv[1:]) + "\n")
@@ -40,14 +44,14 @@ for fold in taslp23.FOLDS:
     os.makedirs(os.path.join(save_dir, "J", fold), exist_ok=True)
 
 # Load DataFrame
-full_df = taslp23.load_fold("full")
+full_df = taslp23.load_fold(synth_type, "full")
 params = full_df.values
 n_samples = params.shape[0]
 assert n_samples > id_end > id_start >= 0  # id is between 0 and (100k-1)
 
 # Rescale shape parameters ("theta") to the interval [-1, 1].
 if minmax:
-    nus, scaler = taslp23.scale_theta(logscale)
+    nus, scaler = taslp23.scale_theta(logscale, synth_type)
 else:
     scaler = None
 
@@ -57,7 +61,7 @@ S_from_nu = taslp23.pnp_forward_factory(scaler, logscale, synth_type)
 # Define the associated Jacobian operator.
 # NB: jacfwd is faster than reverse-mode autodiff here because the input
 # is low-dimensional (5) whereas the output is high-dimensional (~1e4)
-dS_over_dnu = functorch.jacfwd(S_from_nu)
+dS_over_dnu = jacfwd(S_from_nu)
 
 # Loop over examples.
 torch.autograd.set_detect_anomaly(True)
