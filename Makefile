@@ -31,16 +31,32 @@ h help:
 	@echo "  ai25           - Generate ICASSP25 audio data (full dataset)"
 	@echo "  ai25test       - Generate ICASSP25 test audio (100 samples per fold)"
 	@echo "  Mi25           - Compute ICASSP25 PNP Jacobian matrices"
+	@echo "  asm24          - Generate MERSENNE24 string perceptual audio data"
+	@echo "  asm24phys      - Generate MERSENNE24 string physics-based audio data"
+	@echo "  asm24all       - Generate all MERSENNE24 string audio data"
+	@echo "  am24           - Alias for asm24 (backwards compatibility)"
+	@echo "  am24phys       - Alias for asm24phys (backwards compatibility)"
+	@echo "  am24all        - Alias for asm24all (backwards compatibility)"
 	@echo "  at23           - Generate TASLP23 audio data"
 	@echo "  jt23           - Compute TASLP23 Jacobians"  
 	@echo "  Mt23           - Compute TASLP23 LMA matrices"
 	@echo "  mht23          - Merge TASLP23 H5 files"
 	@echo "  cat23          - Clean TASLP23 audio data"
+	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
 	@echo ""
 	@echo "Training:"
 	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
 	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss (ICASSP25)"
 	@echo "  ri25all        - Run all ICASSP25 training variants"
+	@echo "  rm24pl         - Train EfficientNet with P-loss (MERSENNE24 string synthesis)"
+	@echo "  rm24matched    - Train with matched noise augmentation (MERSENNE24 strings)"
+	@echo "  rm24noise      - Train with basic noise augmentation (MERSENNE24 strings)"
+	@echo "  rm24pratm      - Train with PRATM noise augmentation (MERSENNE24 strings)"
+	@echo "  rm24gauss      - Train with Gaussian noise augmentation (MERSENNE24 strings)"
+	@echo "  rm24transient  - Train with transient noise augmentation (MERSENNE24 strings)"
+	@echo "  rm24diffuse    - Train diffusion model for noise generation (MERSENNE24)"
+	@echo "  rm24noise-all  - Run all MERSENNE24 string noise robustness training"
+	@echo "  rm24all        - Run complete MERSENNE24 string training pipeline"
 	@echo "  ri23pl         - Train EfficientNet with P-loss (ICASSP23)"
 	@echo "  ri23pnpl       - Train EfficientNet with PNP-loss (ICASSP23)"
 	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23)"
@@ -58,6 +74,8 @@ h help:
 	@echo "  ei25grad_original - Evaluate gradients (ICASSP25, batch_size=256)"
 	@echo "  ei25audio      - Generate audio comparisons (ICASSP25)"
 	@echo "  ei25html       - Generate HTML comparison interface (ICASSP25)"
+	@echo "  em24diffuse    - Evaluate diffusion model and generate samples (MERSENNE24)"
+	@echo "  em24eval       - Evaluate MERSENNE24 models (placeholder)"
 	@echo ""
 	@echo "Variables:"
 	@echo "  SAVE_DIR       - Output directory for experiments (default: ./outputs)"
@@ -151,7 +169,108 @@ ei25html eval-icassp25-html:
 	cd icassp25/ && source ../.venv/bin/activate && python generate_comparison_html.py ./audio_comparison/analysis.json --output=./audio_comparison/comparison.html
 	@echo "✓ Interactive HTML comparison generated at icassp25/audio_comparison/comparison.html"
 
-# -------------------- TASLP-23  -------------------
+# -------------------- MERSENNE-24  -------------------
+
+# File targets - only run if outputs don't exist
+$(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)/mersenne24
+	cd mersenne24/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/mersenne24
+
+$(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)/mersenne24
+	cd mersenne24/ && source ../.venv/bin/activate && python 01_generate_audio_phys.py $(SAVE_DIR)/mersenne24
+
+# Primary string data generation targets
+asm24 audio-strings-mersenne24: $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
+	@echo "✓ MERSENNE24 string perceptual audio data generated (6 params: w1, tau, p, D, lm, ell)"
+
+asm24phys audio-strings-mersenne24-physics: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "✓ MERSENNE24 string physics-based audio data generated (6 params: EI, Ts0, d1, d3, lm, ell)"
+
+asm24all audio-strings-mersenne24-all: asm24 asm24phys
+	@echo "✓ All MERSENNE24 string synthesis audio data generated"
+
+# Backwards compatibility aliases
+am24 audio-mersenne24: asm24
+	@echo "✓ MERSENNE24 perceptual audio data generated (using string synthesis)"
+
+am24phys audio-mersenne24-physics: asm24phys
+	@echo "✓ MERSENNE24 physics-based audio data generated (using string synthesis)"
+
+am24all audio-mersenne24-all: asm24all
+
+# Training targets - Baseline (using string synthesis)
+rm24pl run-mersenne24-ploss: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with P-loss (MERSENNE24 string synthesis)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+# Training targets - Noise robustness experiments
+rm24matched run-mersenne24-matched-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with matched noise augmentation (MERSENNE24 string synthesis)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 04_train_effnet_ploss_matchednoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24noise run-mersenne24-basic-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with basic noise augmentation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 04_train_effnet_ploss_noise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24randnoise run-mersenne24-random-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with random noise augmentation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 05_train_effnet_ploss_randnoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24pratm run-mersenne24-pratm-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with PRATM noise augmentation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 05_train_effnet_ploss_randpratm.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24gauss run-mersenne24-gaussian-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with Gaussian noise augmentation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 06_train_effnet_ploss_gaussnoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24statgauss run-mersenne24-stationary-gaussian: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with stationary Gaussian noise (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 07_train_effnet_ploss_statgaussnoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24mix run-mersenne24-mixed-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with mixed noise strategies (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 10_train_effnet_ploss_mixnoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24randnoise2 run-mersenne24-random-noise2: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with random noise v2 (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 11_train_effnet_ploss_randnoise.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+rm24transient run-mersenne24-transient-noise: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training EfficientNet with transient noise augmentation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 12_train_effnet_ploss_randtransient.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
+
+# Diffusion model targets
+rm24diffuse train-mersenne24-diffuser: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+	@echo "Training diffusion model for noise generation (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 08_train_diffuser.py
+
+em24diffuse eval-mersenne24-diffuser:
+	@echo "Evaluating diffusion model and generating samples (MERSENNE24)..."
+	cd mersenne24/ && source ../.venv/bin/activate && python 09_eval_diffuser.py
+
+# Comprehensive training pipelines
+rm24noise-all run-mersenne24-noise-all: rm24matched rm24noise rm24randnoise rm24pratm rm24gauss rm24statgauss rm24mix rm24randnoise2 rm24transient
+	@echo "✓ All MERSENNE24 string synthesis noise robustness training completed"
+
+rm24all run-mersenne24-all: rm24pl rm24noise-all rm24diffuse
+	@echo "✓ Complete MERSENNE24 string synthesis training pipeline finished"
+
+# Evaluation targets (placeholder - scripts not yet implemented)
+em24eval eval-mersenne24-models:
+	@echo "MERSENNE24 evaluation targets - to be implemented based on specific evaluation needs"
+	@echo "Available trained models in: $(SAVE_DIR)/mersenne24/f_W/"
+
+# Clean targets
+cm24 clean-mersenne24:
+	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/
+	@echo "✓ MERSENNE24 string synthesis audio data cleaned"
+
+csm24 clean-strings-mersenne24: cm24
+	@echo "✓ MERSENNE24 string synthesis audio data cleaned (alias for cm24)"
+
+# ---------------------- TASLP-23  --------------------
 
 # File target - only runs if output doesn't exist  
 $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
@@ -226,7 +345,33 @@ rt23o run-taslp23-observation:
 	@echo "TensorBoard running in background at http://localhost:6006"
 	@echo "To stop TensorBoard later: pkill -f tensorboard"
 
-# -------------------- ICASSP-23  -------------------
+
+# Conference order was
+#   icassp23 (Oct 2022)
+#   gretsi23 (2023)
+#   taslp23 (June 2023)
+#   mersenne24 (May 2024)
+#   icassp25 (current)
+# and we are using reverse order, so gretsi23 is next:
+
+# -------------------- GRETSI-23  (AM Chirp Focused) -------------------
+
+# File target - only runs if output doesn't exist
+$(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
+	cd ./gretsi23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio
+
+ag23 audio-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
+
+dg23 demo-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
+	@echo "Running GRETSI23 demo pipeline..."
+	@mkdir -p $(SAVE_DIR)
+	@echo "Note: This demo requires audio generation - see gretsi23/ directory for full pipeline"
+	@echo "Example commands:"
+	@echo "  cd gretsi23/ && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio"
+	@echo "  cd gretsi23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/gretsi23_models $(INIT_ID)"
+
+# -------------------- ICASSP-23  (FTM Drums Focused) -------------------
 
 # File target - only runs if output doesn't exist
 icassp23/outputs/icassp23_audio/x/icassp23_train_audio.h5:
@@ -245,25 +390,7 @@ ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	cd icassp23/ && source ../.venv/bin/activate && python 06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
 
-
-# -------------------- GRETSI-23  -------------------
-
-# File target - only runs if output doesn't exist
-$(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5:
-	@mkdir -p $(SAVE_DIR)
-	cd ./gretsi23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio
-
-ag23 audio-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
-
-dg23 demo-gretsi23: $(SAVE_DIR)/gretsi23_audio/gretsi23_train_audio.h5
-	@echo "Running GRETSI23 demo pipeline..."
-	@mkdir -p $(SAVE_DIR)
-	@echo "Note: This demo requires audio generation - see gretsi23/ directory for full pipeline"
-	@echo "Example commands:"
-	@echo "  cd gretsi23/ && python 01_generate_audio.py $(SAVE_DIR)/gretsi23_audio"
-	@echo "  cd gretsi23/ && python 03_train_effnet_ploss.py $(SAVE_DIR)/gretsi23_models $(INIT_ID)"
-
-# -------------------- UTILITY MAKE TARGETS  -------------------
+#================================== UTILITY MAKE TARGETS ==================================
 
 # Data and output management
 cro create-outputs:
