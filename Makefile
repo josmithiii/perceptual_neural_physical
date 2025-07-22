@@ -34,15 +34,12 @@ h help:
 	@echo "  asm24          - Generate MERSENNE24 string perceptual audio data"
 	@echo "  asm24phys      - Generate MERSENNE24 string physics-based audio data"
 	@echo "  asm24all       - Generate all MERSENNE24 string audio data"
-	@echo "  am24           - Alias for asm24 (backwards compatibility)"
-	@echo "  am24phys       - Alias for asm24phys (backwards compatibility)"
-	@echo "  am24all        - Alias for asm24all (backwards compatibility)"
+	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
 	@echo "  at23           - Generate TASLP23 audio data"
 	@echo "  jt23           - Compute TASLP23 Jacobians"  
 	@echo "  Mt23           - Compute TASLP23 LMA matrices"
 	@echo "  mht23          - Merge TASLP23 H5 files"
 	@echo "  cat23          - Clean TASLP23 audio data"
-	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
 	@echo ""
 	@echo "Training:"
 	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
@@ -190,15 +187,6 @@ asm24phys audio-strings-mersenne24-physics: $(SAVE_DIR)/mersenne24/x/mersenne24_
 asm24all audio-strings-mersenne24-all: asm24 asm24phys
 	@echo "✓ All MERSENNE24 string synthesis audio data generated"
 
-# Backwards compatibility aliases
-am24 audio-mersenne24: asm24
-	@echo "✓ MERSENNE24 perceptual audio data generated (using string synthesis)"
-
-am24phys audio-mersenne24-physics: asm24phys
-	@echo "✓ MERSENNE24 physics-based audio data generated (using string synthesis)"
-
-am24all audio-mersenne24-all: asm24all
-
 # Training targets - Baseline (using string synthesis)
 rm24pl run-mersenne24-ploss: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
 	@echo "Training EfficientNet with P-loss (MERSENNE24 string synthesis)..."
@@ -293,7 +281,7 @@ at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 cat23 clean-audio-taslp23:
 	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
 
-# Compute PNP Jacobians for TASLP23
+# Compute PNP Jacobians for TASLP23 to ./taslp23/outputs/taslp23/x/
 jt23 jacobian-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23..."
 	cd taslp23/ && source ../.venv/bin/activate && python 02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 0 1

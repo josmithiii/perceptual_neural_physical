@@ -46,7 +46,7 @@ logscale = True #the csv files are storing logscaled parameters
 for fold in mersenne24.FOLDS:
     # Define path to HDF5 file
     fold_df = mersenne24.load_fold(fold)
-    h5_name = "mersenne24_{}_audio.h5".format(fold)
+    h5_name = "mersenne24_phys_{}_audio.h5".format(fold)
     h5_path = os.path.join(audio_dir, h5_name)
 
     # Create HDF5 file
