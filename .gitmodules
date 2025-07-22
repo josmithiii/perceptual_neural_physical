@@ -1,0 +1,3 @@
+[submodule "jtfs-gpu"]
+	path = jtfs-gpu
+	url = https://github.com/cyrusasfa/jtfs-gpu.git

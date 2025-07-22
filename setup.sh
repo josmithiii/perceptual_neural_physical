@@ -30,19 +30,12 @@ uv pip install -e .
 echo "Installing training dependencies..."
 uv pip install tensorboard
 
-# Install kymatio (try GPU version, fallback to standard)
-echo "Installing kymatio..."
-if ! uv pip install kymatio; then
-    echo "Standard kymatio installation failed, trying GPU version..."
-    if [ ! -d "jtfs-gpu" ]; then
-        git clone https://github.com/cyrusasfa/jtfs-gpu.git
-    fi
-    cd jtfs-gpu
-    uv pip install -e .
-    cd ..
-else
-    echo "Standard kymatio installed successfully"
-fi
+# Initialize and install kymatio from submodule
+echo "Installing kymatio from jtfs-gpu submodule..."
+git submodule update --init --recursive
+cd jtfs-gpu/jtfs-gpu
+uv pip install -e .
+cd ../..
 
 echo ""
 echo "Setup complete!"
