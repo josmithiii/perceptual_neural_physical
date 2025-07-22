@@ -272,6 +272,16 @@ csm24 clean-strings-mersenne24: cm24
 
 # ---------------------- TASLP-23  --------------------
 
+# Based on commit history, the ./taslp23/ fine-tuned PNP subproject is
+# most likely the "Current" project demonstrated at
+# https://lylyhan.github.io/perceptual_neural_physical/ They really
+# sound best, so it matters!  See README_TIMELINE.md for Claude's
+# analysis.  According to Claude, the git commits show active TASLP23
+# development continuing into 2025 (commits like "mersenne data v3",
+# "update dataset", etc.), suggesting TASLP23 represents the
+# current/latest research direction at the time the website examples
+# were generated.
+
 # File target - only runs if output doesn't exist  
 $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)
