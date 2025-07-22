@@ -37,6 +37,8 @@ h help:
 	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
 	@echo "  at23           - Generate TASLP23 audio data"
 	@echo "  jt23           - Compute TASLP23 Jacobians"  
+	@echo "  jt23f          - Compute TASLP23 Jacobians (MPS accelerated, float32)"
+	@echo "  jt23fp         - Compute TASLP23 Jacobians (CPU float64 for precision)"  
 	@echo "  Mt23           - Compute TASLP23 LMA matrices"
 	@echo "  mht23          - Merge TASLP23 H5 files"
 	@echo "  cat23          - Clean TASLP23 audio data"
@@ -278,6 +280,13 @@ $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
 at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "✓ TASLP23 audio data generated"
 
+$(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
+	source .venv/bin/activate && python taslp23/01_generate_audio_fast.py $(SAVE_DIR)/taslp23_fast
+
+at23f audio-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
+	@echo "✓ TASLP23 audio data fast generated"
+
 cat23 clean-audio-taslp23:
 	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
 
@@ -285,6 +294,14 @@ cat23 clean-audio-taslp23:
 jt23 jacobian-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23..."
 	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 0 1
+
+jt23f jacobian-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
+	@echo "Computing PNP Jacobian matrices for TASLP23 (MPS accelerated, float32)..."
+	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian_fast.py $(SAVE_DIR)/taslp23_fast 0 1000 1 0 1 0
+
+jt23fp jacobian-taslp23-fast-precision: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
+	@echo "Computing PNP Jacobian matrices for TASLP23 (CPU float64 for precision)..."
+	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian_fast.py $(SAVE_DIR)/taslp23_fast 0 1000 1 0 1 1
 
 # Basic training targets
 rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
