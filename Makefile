@@ -286,16 +286,6 @@ jt23 jacobian-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23..."
 	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 0 1
 
-# Compute LMA step matrices
-Mt23 M-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
-	@echo "Computing LMA step matrices for TASLP23..."
-	source .venv/bin/activate && python taslp23/12_compute_lmastep.py $(SAVE_DIR)/taslp23 0 1000
-
-# Merge H5 files
-mht23 merge-h5-taslp23:
-	@echo "Merging H5 files for TASLP23..."
-	source .venv/bin/activate && python taslp23/13_merge_h5file.py
-
 # Basic training targets
 rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Training EfficientNet with P-loss (TASLP23)..."
@@ -342,6 +332,16 @@ rt23o run-taslp23-observation:
 	    > /dev/null 2>&1 &)
 	@echo "TensorBoard running in background at http://localhost:6006"
 	@echo "To stop TensorBoard later: pkill -f tensorboard"
+
+# Compute LMA step matrices (analysis)
+Mt23 M-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep.py $(SAVE_DIR)/taslp23 0 1000
+
+# Merge H5 files (analysis)
+mht23 merge-h5-taslp23:
+	@echo "Merging H5 files for TASLP23..."
+	source .venv/bin/activate && python taslp23/13_merge_h5file.py
 
 
 # Conference order was

@@ -1,4 +1,4 @@
-# Perceptual Neural Physical Sound Matching - Research Timeline
+# Perceptual Neural Physical Sound Matching - Research Timeline (according to Detective Claude)
 
 This document provides a comprehensive timeline of the PNP
 (Perceptual-Neural-Physical) sound matching research development, with

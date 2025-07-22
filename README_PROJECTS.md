@@ -1,4 +1,4 @@
-# Perceptual Neural Physical (PNP) Sound Matching - Project Overview
+# Perceptual Neural Physical (PNP) Sound Matching - Project Overview (by Claude)
 
 This repository contains a comprehensive research codebase for Perceptual-Neural-Physical (PNP) sound matching, focusing on neural parameter estimation for physics-based audio synthesis with applications to musical timbre modeling and drum synthesis.
 
@@ -20,15 +20,11 @@ The project introduces the **PNP Loss Function** that bridges:
 The core computation: `S = (Φ ∘ g)(θ)` where Φ is JTFS, g is synthesizer, θ are parameters.
 PNP loss uses Riemannian metric weighting: `M = J^T * J` from synthesis Jacobians.
 
-### Installation
+### Installation (JOS Fork of https://github.com/lylyhan/perceptual_neural_physical.git)
 ```bash
-git clone https://github.com/lylyhan/perceptual_neural_physical.git
+git clone --recurse-submodules https://github.com/josmithiii/perceptual_neural_physical.git
 cd perceptual_neural_physical
-python -m pip install .
-
-# Install enhanced JTFS
-git clone https://github.com/cyrusasfa/jtfs-gpu.git
-cd jtfs-gpu && pip install -e .
+sh setup.sh
 ```
 
 ## Conference-Based Experiment Directories

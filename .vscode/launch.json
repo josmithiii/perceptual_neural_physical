@@ -7,10 +7,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/icassp25/03_train_effnet_ploss.py",
             "args": [
-                "./outputs/icassp25",
+                "./outputs/icassp25/CursorTests",
                 "test",
                 "1",
-                "1", 
+                "1",
                 "adam",
                 "b0",
                 "32"
@@ -28,11 +28,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/icassp25/05_train_effnet_pnploss.py",
             "args": [
-                "./outputs/icassp25",
+                "./outputs/icassp25/CursorTests",
                 "test",
                 "1",
                 "1",
-                "adam", 
+                "adam",
                 "b0",
                 "32"
             ],
@@ -67,7 +67,7 @@
             "program": "${workspaceFolder}/icassp25/02_eval_pnp.py",
             "args": [
                 "b0",
-                "adam", 
+                "adam",
                 "0"
             ],
             "cwd": "${workspaceFolder}/icassp25",
@@ -89,6 +89,141 @@
                 "32"
             ],
             "cwd": "${workspaceFolder}/icassp25",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Generate Audio (at23)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/01_generate_audio.py",
+            "args": [
+                "./outputs/taslp23/CursorTests"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Compute Jacobians (jt23)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/02_compute_pnp_jacobian.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "0",
+                "1000",
+                "1",
+                "0",
+                "1"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Train P-loss (rt23pl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/03_train_effnet_ploss.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "test",
+                "1",
+                "1",
+                "adam",
+                "ftm"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Train Spectral-loss (rt23sl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/04_train_effnet_specloss.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "test",
+                "1",
+                "1",
+                "adam",
+                "ftm"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Train PNP-loss (rt23pnpl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/05_train_effnet_pnploss.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "test",
+                "1",
+                "1",
+                "adam",
+                "ftm"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Fine-tune PNP-loss (rt23ft-pnpl)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/06_train_effnet_finetune_pnploss.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "test",
+                "1",
+                "1",
+                "adam",
+                "ftm"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Fine-tune MSS-loss (rt23ft-mss)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/07_train_effnet_finetune_mss.py",
+            "args": [
+                "./outputs/taslp23/CursorTests",
+                "test",
+                "1",
+                "1",
+                "adam",
+                "ftm"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

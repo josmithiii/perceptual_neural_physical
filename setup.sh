@@ -33,9 +33,9 @@ uv pip install tensorboard
 # Initialize and install kymatio from submodule
 echo "Installing kymatio from jtfs-gpu submodule..."
 git submodule update --init --recursive
-cd jtfs-gpu/jtfs-gpu
+cd jtfs-gpu
 uv pip install -e .
-cd ../..
+cd ..
 
 echo ""
 echo "Setup complete!"
