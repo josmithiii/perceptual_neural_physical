@@ -235,7 +235,9 @@ def generate_html_interface(analysis_file, output_file="comparison.html"):
         """
 
         for param, value in target_params.items():
-            html_content += f"<tr><td>{param}</td><td>{value:.4f}</td></tr>"
+            # Convert value to float if it's a string
+            value_float = float(value) if isinstance(value, str) else value
+            html_content += f"<tr><td>{param}</td><td>{value_float:.4f}</td></tr>"
 
         html_content += """
                 </table>
@@ -250,7 +252,9 @@ def generate_html_interface(analysis_file, output_file="comparison.html"):
         for param, value in pred_params.items():
             error = errors[param]
             error_class = "error-low" if error < 0.1 else ("error-medium" if error < 0.2 else "error-high")
-            html_content += f"""<tr><td>{param}</td><td>{value:.4f}</td><td class="{error_class}">{error:.4f}</td></tr>"""
+            # Convert value to float if it's a string
+            value_float = float(value) if isinstance(value, str) else value
+            html_content += f"""<tr><td>{param}</td><td>{value_float:.4f}</td><td class="{error_class}">{error:.4f}</td></tr>"""
 
         html_content += """
                 </table>

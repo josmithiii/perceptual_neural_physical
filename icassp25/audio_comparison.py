@@ -109,16 +109,16 @@ def create_audio_comparison(model_dir, num_samples=10, output_dir="./audio_compa
     print("Loading parameter scaler...")
     _, scaler = icassp25.scale_theta(logscale=1)
 
-    # Limit to requested number of samples
-    num_samples = min(num_samples, len(test_df), len(predictions))
-    test_df = test_df.head(num_samples)
-    # Reshape predictions: take the last epoch and flatten batch dimension
+    # Reshape predictions: take the latest epoch
     if len(predictions.shape) == 4:  # (epochs, samples, batch_size, params)
-        predictions = predictions[-1]  # Take last epoch: (samples, batch_size, params)
+        predictions = predictions[-1]  # Take latest epoch: (samples, batch_size, params)
         predictions = predictions.reshape(-1, predictions.shape[-1])  # Flatten: (samples*batch_size, params)
     elif len(predictions.shape) == 3:  # (samples, batch_size, params)
         predictions = predictions.reshape(-1, predictions.shape[-1])  # Flatten: (samples*batch_size, params)
 
+    # Limit to requested number of samples
+    num_samples = min(num_samples, len(test_df), len(predictions))
+    test_df = test_df.head(num_samples)
     predictions = predictions[:num_samples]
 
     print(f"Generating audio for {num_samples} samples...")

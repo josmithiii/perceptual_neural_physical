@@ -157,13 +157,13 @@ ei25grad_original eval-icassp25-grad-original:
 	source .venv/bin/activate && python icassp25/06_eval_grad.py adam ploss b0 256
 
 # Audio comparison and analysis
-ei25audio eval-icassp25-audio-comparison:
+ei25a eval-icassp25-audio-comparison:
 	@echo "Generating audio comparison (ICASSP25)..."
-	source .venv/bin/activate && python icassp25/audio_comparison.py $(SAVE_DIR)/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size$(BATCH_SIZE)_lr-0.001_init-$(INIT_ID) --num_samples=10 --output_dir=./audio_comparison
+	source .venv/bin/activate && python icassp25/audio_comparison.py $(SAVE_DIR)/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size$(BATCH_SIZE)_lr-0.001_init-$(INIT_ID) --num_samples=10 --output_dir=./icassp25/audio_comparison
 
 ei25html eval-icassp25-html:
 	@echo "Generating HTML comparison interface (ICASSP25)..."
-	source .venv/bin/activate && python icassp25/generate_comparison_html.py ./audio_comparison/analysis.json --output=./audio_comparison/comparison.html
+	source .venv/bin/activate && python icassp25/generate_comparison_html.py ./icassp25/audio_comparison/analysis.json --output=./icassp25/audio_comparison/comparison.html
 	@echo "✓ Interactive HTML comparison generated at icassp25/audio_comparison/comparison.html"
 
 # -------------------- MERSENNE-24  -------------------
