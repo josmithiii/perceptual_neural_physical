@@ -17,12 +17,21 @@ import soundfile as sf
 import time
 import torch
 
+# Detect available device
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
+
 # Print header
 start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
 print(__doc__ + "\n")
 save_dir = sys.argv[1]
 print("Command-line arguments:\n" + "\n".join(sys.argv[1:]) + "\n")
+print(f"Using device: {device}\n")
 
 for module in [h5py, np, pd]:
     print("{} version: {:s}".format(module.__name__, module.__version__))
@@ -57,7 +66,7 @@ for fold in mersenne24.FOLDS:
         #i, row = irow
         # Physical audio synthesis (g). theta -> x
         theta = np.array([row[column] for column in mersenne24.THETA_COLUMNS])
-        pos_ratio = torch.rand(1).to("cuda") / 2
+        pos_ratio = torch.rand(1).to(device) / 2
         x = ftm.linearstring_physics(theta, pos_ratio, **ftm.constants_string)
         if type(x) != str:
             key = str(row["ID"])
