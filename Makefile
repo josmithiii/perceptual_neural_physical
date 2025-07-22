@@ -71,42 +71,6 @@ install:
 
 # For data generation, training, and model evaluation, organized by conference/journal-article project
 
-# -------------------- TASLP-23  -------------------
-
-# File target - only runs if output doesn't exist  
-$(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
-	@mkdir -p $(SAVE_DIR)
-	cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23
-
-at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
-	@echo "✓ TASLP23 audio data generated"
-
-cat23 clean-audio-taslp23:
-	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
-
-
-rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
-	@echo "Training EfficientNet with P-loss (TASLP23)..."
-	cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
-
-rt23sl run-taslp23-specloss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
-	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
-	cd taslp23/ && source ../.venv/bin/activate && python 04_train_effnet_specloss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
-
-rt23pnpl run-taslp23-pnploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
-	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
-	cd taslp23/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
-
-rt23o run-taslp23-observation:
-	@echo "Starting TensorBoard for TASLP23 training..."
-	@(cd /Users/jos/w/perceptual_neural_physical && \
-	  . .venv/bin/activate && \
-	  nohup tensorboard \
-	    --logdir taslp23/outputs/taslp23/f_W/ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size256_lr-0.001_init-test/logs \
-	    > /dev/null 2>&1 &)
-	@echo "TensorBoard running in background at http://localhost:6006"
-	@echo "To stop TensorBoard later: pkill -f tensorboard"
-
 # -------------------- ICASSP-25  -------------------
 
 # ICASSP25 data generation using FTM modal drum synthesis
@@ -154,6 +118,42 @@ ei25grad eval-icassp25-grad:
 ei25grad_original eval-icassp25-grad-original:
 	@echo "Evaluating gradients (ICASSP25) - original config..."
 	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py adam ploss b0 256
+
+# -------------------- TASLP-23  -------------------
+
+# File target - only runs if output doesn't exist  
+$(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
+	cd taslp23/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/taslp23
+
+at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "✓ TASLP23 audio data generated"
+
+cat23 clean-audio-taslp23:
+	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
+
+
+rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Training EfficientNet with P-loss (TASLP23)..."
+	cd taslp23/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23sl run-taslp23-specloss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
+	cd taslp23/ && source ../.venv/bin/activate && python 04_train_effnet_specloss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23pnpl run-taslp23-pnploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
+	cd taslp23/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23o run-taslp23-observation:
+	@echo "Starting TensorBoard for TASLP23 training..."
+	@(cd /Users/jos/w/perceptual_neural_physical && \
+	  . .venv/bin/activate && \
+	  nohup tensorboard \
+	    --logdir taslp23/outputs/taslp23/f_W/ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size256_lr-0.001_init-test/logs \
+	    > /dev/null 2>&1 &)
+	@echo "TensorBoard running in background at http://localhost:6006"
+	@echo "To stop TensorBoard later: pkill -f tensorboard"
 
 # -------------------- ICASSP-23  -------------------
 
