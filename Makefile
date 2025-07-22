@@ -28,18 +28,19 @@ h help:
 	@echo "  format         - Format code (if available)"
 	@echo ""
 	@echo "Data Generation:"
+	@echo "  ai25           - Generate ICASSP25 audio data (full dataset)"
+	@echo "  ai25test       - Generate ICASSP25 test audio (100 samples per fold)"
+	@echo "  Mi25           - Compute ICASSP25 PNP Jacobian matrices"
 	@echo "  at23           - Generate TASLP23 audio data"
 	@echo "  jt23           - Compute TASLP23 Jacobians"  
 	@echo "  Mt23           - Compute TASLP23 LMA matrices"
 	@echo "  mht23          - Merge TASLP23 H5 files"
 	@echo "  cat23          - Clean TASLP23 audio data"
 	@echo ""
-	@echo "Experiments (Examples):"
-	@echo "  di23/demo-icassp23  - Run basic ICASSP23 pipeline demo"
-	@echo "  demo-gretsi23       - Run basic GRETSI23 pipeline demo"
-	@echo "  demo-taslp23        - Run basic TASLP23 pipeline demo"
-	@echo ""
 	@echo "Training:"
+	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
+	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss (ICASSP25)"
+	@echo "  ri25all        - Run all ICASSP25 training variants"
 	@echo "  ri23pl         - Train EfficientNet with P-loss (ICASSP23)"
 	@echo "  ri23pnpl       - Train EfficientNet with PNP-loss (ICASSP23)"
 	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23)"
@@ -48,14 +49,15 @@ h help:
 	@echo "  rt23ft-pnpl    - Fine-tune with PNP-loss (TASLP23)"
 	@echo "  rt23ft-mss     - Fine-tune with MSS-loss (TASLP23)"
 	@echo "  rt23all        - Run all TASLP23 training variants"
-	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
-	@echo "  ri25pnpl       - Train EfficientNet with PNP-loss (ICASSP25)"
 	@echo ""
 	@echo "Evaluation:"
-	@echo "  ei25pl         - Evaluate P-loss model"
-	@echo "  ei25pnp        - Evaluate PNP model"
-	@echo "  ei25grad       - Evaluate gradients (batch_size=32)"
-	@echo "  ei25grad_original - Evaluate gradients (original config, batch_size=256)"
+	@echo "  ei25pl         - Evaluate P-loss model (ICASSP25)"
+	@echo "  ei25pnp        - Evaluate PNP model (ICASSP25)"
+	@echo "  ei25grad       - Evaluate gradients (ICASSP25, batch_size=32)"
+	@echo "  ei25grad_ft    - Evaluate gradients for fine-tuning (ICASSP25)"
+	@echo "  ei25grad_original - Evaluate gradients (ICASSP25, batch_size=256)"
+	@echo "  ei25audio      - Generate audio comparisons (ICASSP25)"
+	@echo "  ei25html       - Generate HTML comparison interface (ICASSP25)"
 	@echo ""
 	@echo "Variables:"
 	@echo "  SAVE_DIR       - Output directory for experiments (default: ./outputs)"
@@ -84,51 +86,70 @@ install:
 
 # -------------------- ICASSP-25  -------------------
 
-# ICASSP25 data generation using FTM modal drum synthesis
-ai25 audio-icassp25:
-	@echo "Generating ICASSP25 audio data using FTM synthesis..."
+# File target - only runs if output doesn't exist
+$(SAVE_DIR)/icassp25/x/ftm_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)/icassp25
 	cd icassp25/ && source ../.venv/bin/activate && python 01_generate_audio.py $(SAVE_DIR)/icassp25
+
+# ICASSP25 data generation using FTM modal drum synthesis
+ai25 audio-icassp25: $(SAVE_DIR)/icassp25/x/ftm_train_audio.h5
 	@echo "✓ ICASSP25 audio data generated"
 
-Mi25 M-icassp25: $(SAVE_DIR)/icassp25/x/icassp25_train_audio.h5
+# Test audio generation (first 100 samples per fold)
+ai25test audio-icassp25-test:
+	@echo "Generating ICASSP25 test audio data (100 samples per fold)..."
+	@mkdir -p $(SAVE_DIR)/icassp25
+	cd icassp25/ && source ../.venv/bin/activate && python 01_generate_audio_test.py $(SAVE_DIR)/icassp25
+	@echo "✓ ICASSP25 test audio data generated"
+
+# Compute PNP Jacobian matrices
+Mi25 M-icassp25: $(SAVE_DIR)/icassp25/x/ftm_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for ICASSP25..."
 	cd icassp25/ && source ../.venv/bin/activate && python 01b_compute_pnp_jacobian.py $(SAVE_DIR)/icassp25
 
-# Run experiments for ICASSP25, various losses (P-Loss, Spec-Loss, PNP-Loss)
-ri25pl run-icassp25-ploss: $(SAVE_DIR)/icassp25/x/icassp25_train_audio.h5
+# Training targets
+ri25pl run-icassp25-ploss: $(SAVE_DIR)/icassp25/x/ftm_train_audio.h5
 	@echo "Training EfficientNet with P-loss (ICASSP25)..."
-	@mkdir -p $(SAVE_DIR)/icassp25
 	cd icassp25/ && source ../.venv/bin/activate && python 03_train_effnet_ploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
 
-ri25sl run-icassp25-specloss: $(SAVE_DIR)/icassp25/x/icassp25_train_audio.h5
-	@echo "Training EfficientNet with Spectral-loss (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 04_train_effnet_specloss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0
-
-ri25pnpl run-icassp25-pnploss: $(SAVE_DIR)/icassp25/x/icassp25_train_audio.h5
+ri25pnpl run-icassp25-pnploss: $(SAVE_DIR)/icassp25/x/ftm_train_audio.h5 Mi25
 	@echo "Training EfficientNet with PNP-loss (ICASSP25)..."
-	@mkdir -p $(SAVE_DIR)/icassp25
 	cd icassp25/ && source ../.venv/bin/activate && python 05_train_effnet_pnploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
 
-ri25all: ri25pl ri25sl ri25pnpl
+ri25all run-icassp25-all: ri25pl ri25pnpl
 
-# Evals ICASSP25
+# Evaluation targets
 ei25pl eval-icassp25-ploss:
 	@echo "Evaluating P-loss model (ICASSP25)..."
-	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam test > ei25pl_log_`shortdate`.txt 2>&1 &
-	tail -f icassp25/ei25pl_log_`shortdate`.txt
+	cd icassp25/ && source ../.venv/bin/activate && python 01_eval_ploss.py b0 adam $(INIT_ID) > ei25pl_log_$$(date +%Y-%m-%d).txt 2>&1 &
+	@echo "Background evaluation started. Check log: icassp25/ei25pl_log_$$(date +%Y-%m-%d).txt"
 
 ei25pnp eval-icassp25-pnp:
 	@echo "Evaluating PNP model (ICASSP25)..."
 	cd icassp25/ && source ../.venv/bin/activate && python 02_eval_pnp.py b0 adam 0
 
+# Gradient analysis targets
 ei25grad eval-icassp25-grad:
 	@echo "Evaluating gradients (ICASSP25)..."
 	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py adam ploss b0 32
 
+ei25grad_ft eval-icassp25-grad-finetune:
+	@echo "Evaluating gradients for fine-tuning (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python 08_eval_grad_finetune.py adam
+
 ei25grad_original eval-icassp25-grad-original:
 	@echo "Evaluating gradients (ICASSP25) - original config..."
 	cd icassp25/ && source ../.venv/bin/activate && python 06_eval_grad.py adam ploss b0 256
+
+# Audio comparison and analysis
+ei25audio eval-icassp25-audio-comparison:
+	@echo "Generating audio comparison (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python audio_comparison.py $(SAVE_DIR)/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size$(BATCH_SIZE)_lr-0.001_init-$(INIT_ID) --num_samples=10 --output_dir=./audio_comparison
+
+ei25html eval-icassp25-html:
+	@echo "Generating HTML comparison interface (ICASSP25)..."
+	cd icassp25/ && source ../.venv/bin/activate && python generate_comparison_html.py ./audio_comparison/analysis.json --output=./audio_comparison/comparison.html
+	@echo "✓ Interactive HTML comparison generated at icassp25/audio_comparison/comparison.html"
 
 # -------------------- TASLP-23  -------------------
 
