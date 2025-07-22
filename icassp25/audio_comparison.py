@@ -23,7 +23,7 @@ from pnp_synth.neural import forward
 from pnp_synth import utils
 
 
-def load_ground_truth_parameters(data_dir="./data"):
+def load_ground_truth_parameters(data_dir="./icassp25/data"):
     """Load ground truth parameters from CSV."""
     csv_path = os.path.join(data_dir, "full_param_log.csv")
     df = pd.read_csv(csv_path)
@@ -107,11 +107,18 @@ def create_audio_comparison(model_dir, num_samples=10, output_dir="./audio_compa
 
     # Load scaler
     print("Loading parameter scaler...")
-    _, scaler = icassp25.scale_theta(logscale_theta=1)
+    _, scaler = icassp25.scale_theta(logscale=1)
 
     # Limit to requested number of samples
     num_samples = min(num_samples, len(test_df), len(predictions))
     test_df = test_df.head(num_samples)
+    # Reshape predictions: take the last epoch and flatten batch dimension
+    if len(predictions.shape) == 4:  # (epochs, samples, batch_size, params)
+        predictions = predictions[-1]  # Take last epoch: (samples, batch_size, params)
+        predictions = predictions.reshape(-1, predictions.shape[-1])  # Flatten: (samples*batch_size, params)
+    elif len(predictions.shape) == 3:  # (samples, batch_size, params)
+        predictions = predictions.reshape(-1, predictions.shape[-1])  # Flatten: (samples*batch_size, params)
+
     predictions = predictions[:num_samples]
 
     print(f"Generating audio for {num_samples} samples...")
