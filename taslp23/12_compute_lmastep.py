@@ -17,6 +17,20 @@ import sys
 import time
 import torch
 
+# Set device intelligently
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+    precision = torch.float32  # MPS only supports float32
+    print("Using MPS device with float32 precision")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+    precision = torch.float32  # Keep consistent with original behavior
+    print("Using CUDA device with float32 precision")
+else:
+    device = torch.device("cpu")
+    precision = torch.float64  # CPU can handle float64
+    print("Using CPU device with float64 precision")
+
 # Print header
 start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
@@ -42,7 +56,7 @@ if "nominmax" in dir_name:
         logscale = True
     else:
         logscale = False
-        
+
     full_df = taslp23.load_fold(synth_type)
     nus = []
     for column in THETA_COLUMNS:
@@ -51,7 +65,7 @@ if "nominmax" in dir_name:
         else:
             nus.append(full_df[column].values)
 
-    nus = np.stack(nus, axis=1)        
+    nus = np.stack(nus, axis=1)
 
 else:
     if "log" in dir_name:
@@ -59,7 +73,7 @@ else:
     else:
         logscale = False
 
-    _, scaler = taslp23.scale_theta(logscale, synth_type) #sorted in terms of id    
+    _, scaler = taslp23.scale_theta(logscale, synth_type) #sorted in terms of id
     full_df = taslp23.load_fold(synth_type)
     nus = []
     for column in THETA_COLUMNS:
@@ -67,7 +81,7 @@ else:
             nus.append(10 ** full_df[column].values)
         else:
             nus.append(full_df[column].values)
-    nus = np.stack(nus, axis=1)   
+    nus = np.stack(nus, axis=1)
 
 # Define the forward PNP operator.
 S_from_nu = taslp23.pnp_forward_factory(scaler, logscale, synth_type)
@@ -97,7 +111,7 @@ for i in range(id_start, id_end):
     fold = row['fold']
     h5_name = "ftm_{}_M_{}.h5".format(fold, id_start)
     h5_path = os.path.join(save_dir, dir_name, h5_name)
-    nu = torch.tensor(nus[key, :], requires_grad=True).to("cuda")
+    nu = torch.tensor(nus[key, :], requires_grad=True, dtype=precision).to(device)
 
     with h5py.File(h5_path, "r") as h5_file:
         if str(i) not in h5_file['sigma'].keys():
@@ -105,7 +119,7 @@ for i in range(id_start, id_end):
             ismake = True
         else:
             ismake = False
-    
+
     if ismake:
         J = dS_over_dnu(nu).detach()
         M = torch.matmul(J.T, J)
