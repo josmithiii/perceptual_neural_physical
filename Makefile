@@ -40,6 +40,8 @@ h help:
 	@echo "  jt23f          - Compute TASLP23 Jacobians (MPS accelerated, float32)"
 	@echo "  jt23fp         - Compute TASLP23 Jacobians (CPU float64 for precision)"  
 	@echo "  Mt23           - Compute TASLP23 LMA matrices"
+	@echo "  Mt23f          - Compute TASLP23 LMA matrices (MPS accelerated, batch processing)"
+	@echo "  Mt23fp         - Compute TASLP23 LMA matrices (CPU float64 for precision)"
 	@echo "  mht23          - Merge TASLP23 H5 files"
 	@echo "  cat23          - Clean TASLP23 audio data"
 	@echo ""
@@ -355,6 +357,14 @@ rt23o run-taslp23-observation:
 Mt23 M-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23..."
 	source .venv/bin/activate && python taslp23/12_compute_lmastep.py $(SAVE_DIR)/taslp23 0 1000
+
+Mt23f M-taslp23-fast: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 (MPS accelerated, batch processing)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 0
+
+Mt23fp M-taslp23-fast-precision: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 (CPU float64 for precision)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1
 
 # Merge H5 files (analysis)
 mht23 merge-h5-taslp23:
