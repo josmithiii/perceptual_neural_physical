@@ -45,7 +45,7 @@ sys.stdout.flush()
 
 
 names = ["M"]
-    
+
 if minmax == False:
     names.append("nominmax")
 if logscale_theta == True:
@@ -88,7 +88,10 @@ mu = 1e-10 # the scaling factor of M
 
 if __name__ == "__main__":
     #os.environ["CUDA_VISIBLE_DEVICES"] = "0" #restrict machine
-    print("Current device: ", torch.cuda.get_device_name(0))
+    device = utils.get_device()
+    print(f"Current device: {device}")
+    if device == "cuda":
+        print("CUDA device name:", torch.cuda.get_device_name(0))
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -154,9 +157,20 @@ if __name__ == "__main__":
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=os.path.join(model_save_path,"logs"))
     lr_monitor = LearningRateMonitor(logging_interval='step')
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    # Set accelerator based on available device
+    if device == "cuda":
+        accelerator = "gpu"
+        devices = -1  # use all GPUs
+    elif device == "mps":
+        accelerator = "mps"
+        devices = 1
+    else:
+        accelerator = "cpu"
+        devices = 1
+
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
+        accelerator=accelerator,
+        devices=devices,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
@@ -173,7 +187,7 @@ if __name__ == "__main__":
 
     #print("found learning rate, ", lr_finder.results)
 
-    # train 
+    # train
     print("Training ...")
     trainer.fit(model, dataset)
 

@@ -84,7 +84,7 @@ h help:
 	@echo "  BATCH_SIZE     - Training batch size (default: 32)"
 
 # Variables
-SAVE_DIR ?= ./outputs
+SAVE_DIR ?= $(shell realpath $(./outputs))
 INIT_ID ?= test
 BATCH_SIZE ?= 32
 VENV_PYTHON = .venv/bin/python

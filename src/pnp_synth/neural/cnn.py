@@ -508,8 +508,9 @@ class DrumData(Dataset):
                 Sy = self.cqt_from_id(id, eps)
                 return {'feature': torch.abs(Sy), 'y': y_norm, 'weight': weight, 'M': M,
                     'metric_weight': metric_weight, 'M_mean': self.M_mean, 'JdagJ': JdagJ, 'lambda0':self.lambda0}
-            except:
-                print("skipped id, ", id)
+            except Exception as e:
+                print(f"skipped id {id}, error: {e}")
+                return None
 
     def __len__(self):
         return len(self.ids)
@@ -676,6 +677,10 @@ class DrumDataModule(pl.LightningDataModule):
         if "am" in weight_dir:
             self.synth_type = "amchirp"
             self.h5name = "amchirp"
+        elif "taslp23" in weight_dir:
+            print("Setting synth_type to ftm for taslp23")
+            self.synth_type = "ftm"
+            self.h5name = "taslp23"
         elif "ftm" in weight_dir:
             self.synth_type = "ftm"
             self.h5name = "ftm"
@@ -761,6 +766,11 @@ class DrumDataModule(pl.LightningDataModule):
 
 
     def collate_batch(self, batch):
+        # Filter out None values from failed data loading
+        batch = [s for s in batch if s is not None]
+        if len(batch) == 0:
+            print("*** omitting 'None' from batch presumably due to failed data loading")
+            return None
         Sy = torch.stack([s['feature'] for s in batch]) #(64,120,257)x
         y = torch.tensor(np.array([s['y'].astype(np.float32) for s in batch]))
         weight = torch.stack([s['weight'] for s in batch])
