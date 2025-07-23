@@ -290,11 +290,12 @@ at23f audio-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
 cat23 clean-audio-taslp23:
 	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
 
-# Compute PNP Jacobians for TASLP23 to ./taslp23/outputs/taslp23/x/
+# Compute PNP Jacobians for TASLP23 to ./outputs/taslp23/x/
 jt23 jacobian-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23..."
 	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 0 1
 
+# Compute PNP Jacobians for TASLP23 to ./outputs/taslp23_fast/x/
 jt23f jacobian-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23 (MPS accelerated, float32)..."
 	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian_fast.py $(SAVE_DIR)/taslp23_fast 0 1000 1 0 1 0
