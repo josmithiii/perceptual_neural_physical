@@ -674,19 +674,23 @@ class DrumDataModule(pl.LightningDataModule):
         self.cqt_dir = cqt_dir
         self.scaler = scaler
         self.noisemodel = noisemodel
-        if "am" in weight_dir:
-            self.synth_type = "amchirp"
-            self.h5name = "amchirp"
-        elif "taslp23" in weight_dir:
+        if "taslp23" in weight_dir:
             print("Setting synth_type to ftm for taslp23")
             self.synth_type = "ftm"
-            self.h5name = "taslp23"
+            self.h5name = "ftm"  # For M matrices
+            self.audio_h5name = "taslp23"  # For audio files
+        elif "amchirp" in weight_dir or weight_dir.endswith("am"):
+            self.synth_type = "amchirp"
+            self.h5name = "amchirp"
+            self.audio_h5name = "amchirp"
         elif "ftm" in weight_dir:
             self.synth_type = "ftm"
             self.h5name = "ftm"
+            self.audio_h5name = "ftm"
         elif "mersenne" in weight_dir:
             self.synth_type = "string"
             self.h5name = "mersenne24"
+            self.audio_h5name = "mersenne24"
         else:
             # Fallback: check directory contents to determine synth_type
             import os
@@ -695,21 +699,24 @@ class DrumDataModule(pl.LightningDataModule):
                 if any("ftm" in f for f in files):
                     self.synth_type = "ftm"
                     self.h5name = "ftm"
+                    self.audio_h5name = "ftm"
                 elif any("amchirp" in f or "am" in f for f in files):
                     self.synth_type = "amchirp"
                     self.h5name = "amchirp"
+                    self.audio_h5name = "amchirp"
                 elif any("mersenne" in f for f in files):
                     self.synth_type = "string"
                     self.h5name = "mersenne24"
+                    self.audio_h5name = "mersenne24"
                 else:
                     # Default fallback
                     self.synth_type = "ftm"
                     self.h5name = "ftm"
+                    self.audio_h5name = "ftm"
         self.noise_dir = noise_dir
         self.noise_mode = noise_mode
 
     def setup(self, stage=None):
-
 
         y_norms_train= utils.scale_theta(self.full_df, "train", self.scaler, self.logscale, self.synth_type) #sorted by id
         y_norms_test = utils.scale_theta(self.full_df, "test", self.scaler, self.logscale, self.synth_type)
@@ -721,7 +728,7 @@ class DrumDataModule(pl.LightningDataModule):
 
         self.train_ds = DrumData(y_norms_train, #partial dataframe
                                 train_ids,
-                                os.path.join(self.data_dir, self.h5name + "_train_audio.h5"),
+                                os.path.join(self.data_dir, self.audio_h5name + "_train_audio.h5"),
                                 self.cqt_dir,
                                 os.path.join(self.weight_dir, self.h5name + "_train_J.h5"),
                                 self.weight_type,
@@ -736,7 +743,7 @@ class DrumDataModule(pl.LightningDataModule):
 
         self.val_ds = DrumData(y_norms_val, #partial dataframe
                                 val_ids,
-                                os.path.join(self.data_dir, self.h5name + "_val_audio.h5"),
+                                os.path.join(self.data_dir, self.audio_h5name + "_val_audio.h5"),
                                 self.cqt_dir,
                                 os.path.join(self.weight_dir, self.h5name + "_val_J.h5"),
                                 self.weight_type,
@@ -751,7 +758,7 @@ class DrumDataModule(pl.LightningDataModule):
 
         self.test_ds = DrumData(y_norms_test, #partial dataframe
                                 test_ids,
-                                os.path.join(self.data_dir, self.h5name + "_test_audio.h5"),
+                                os.path.join(self.data_dir, self.audio_h5name + "_test_audio.h5"),
                                 self.cqt_dir,
                                 os.path.join(self.weight_dir, self.h5name + "_test_J.h5"),
                                 self.weight_type,

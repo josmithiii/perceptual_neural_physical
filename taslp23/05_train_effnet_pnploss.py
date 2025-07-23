@@ -54,7 +54,11 @@ J_foldname = "_".join(names)
 
 
 data_dir = os.path.join(save_dir, "x")
-weight_dir = os.path.join(save_dir, J_foldname)
+# Allow override for weight_dir via environment variable
+if "TMP_WEIGHT_DIR" in os.environ:
+    weight_dir = os.path.join(os.environ["TMP_WEIGHT_DIR"], J_foldname)
+else:
+    weight_dir = os.path.join(save_dir, J_foldname)
 model_dir = os.path.join(save_dir, "f_W")
 cqt_dir = data_dir
 

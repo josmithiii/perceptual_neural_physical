@@ -63,6 +63,7 @@ h help:
 	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23)"
 	@echo "  rt23sl         - Train EfficientNet with Spectral-loss (TASLP23)"
 	@echo "  rt23pnpl       - Train EfficientNet with PNP-loss (TASLP23)"
+	@echo "  clean-tmp-matrices - Clean temporary matrix files in /tmp/M_log"
 	@echo "  rt23ft-pnpl    - Fine-tune with PNP-loss (TASLP23)"
 	@echo "  rt23ft-mss     - Fine-tune with MSS-loss (TASLP23)"
 	@echo "  rt23all        - Run all TASLP23 training variants"
@@ -84,7 +85,7 @@ h help:
 	@echo "  BATCH_SIZE     - Training batch size (default: 32)"
 
 # Variables
-SAVE_DIR ?= $(shell realpath $(./outputs))
+SAVE_DIR ?= $(shell realpath ./outputs/)
 INIT_ID ?= test
 BATCH_SIZE ?= 32
 VENV_PYTHON = .venv/bin/python
@@ -306,6 +307,11 @@ jt23fp jacobian-taslp23-fast-precision: $(SAVE_DIR)/taslp23_fast/x/taslp23_train
 	@echo "Computing PNP Jacobian matrices for TASLP23 (CPU float64 for precision)..."
 	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian_fast.py $(SAVE_DIR)/taslp23_fast 0 1000 1 0 1 1
 
+# Clean temporary matrix files
+clean-tmp-matrices:
+	@echo "Cleaning temporary matrix files in /tmp/M_log..."
+	rm -rf /tmp/M_log
+
 # Basic training targets
 rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Training EfficientNet with P-loss (TASLP23)..."
@@ -315,7 +321,7 @@ rt23sl run-taslp23-specloss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Training EfficientNet with Spectral loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/04_train_effnet_specloss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
-rt23pnpl run-taslp23-pnploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
+rt23pnpl run-taslp23-pnploss: Mt23f
 	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
@@ -360,7 +366,7 @@ Mt23 M-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 
 Mt23f M-taslp23-fast: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23 (MPS accelerated, batch processing)..."
-	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 0
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 100000 0
 
 Mt23fp M-taslp23-fast-precision: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23 (CPU float64 for precision)..."
