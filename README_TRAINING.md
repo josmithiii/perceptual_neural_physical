@@ -1,6 +1,10 @@
 # EfficientNet Training Guide for FTM Dataset with Jacobians
 
-This document provides best practices for training EfficientNet models on the Functional Transformation Method (FTM) dataset using pre-computed Jacobians for physics-informed learning.
+This document provides best practices for training EfficientNet models
+on the Functional Transformation Method (FTM) dataset using
+pre-computed Jacobians for physics-informed learning.
+
+[Written by Claude Sonnet 4 Code based on its reading of the files herein.]
 
 ## Quick Start
 
