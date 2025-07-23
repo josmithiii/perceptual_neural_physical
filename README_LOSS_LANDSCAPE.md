@@ -76,7 +76,7 @@ loss = 0.5 × (θ_pred - θ_true)ᵀ × (μ × M) × (θ_pred - θ_true)
 **Scaling Values Across Experiments**:
 - **Standard Training**: μ = 1×10⁻¹⁰
 - **Fine-tuning**: μ = 1×10⁻¹⁵ to 1×10⁻²⁰
-- **Historical**: Commented `/1e+5` suggests previous overflow issues
+- **Historical**: Commented `÷1e+5` suggests previous overflow issues
 
 **Physical Interpretation**: Without μ scaling, typical parameter errors (≈0.1) would produce losses ≈10¹¹, causing gradient explosion.
 
@@ -158,7 +158,7 @@ The damping parameter λ adapts based on validation performance:
 if validation_loss_improved:
     λ = λ × 0.05      # Reduce damping (more Gauss-Newton-like)
 else:
-    λ = λ × 1.0       # Maintain/increase damping (more gradient descent-like)
+    λ = λ × 1.0       # Maintain damping (more gradient descent-like)
 ```
 
 **Initial Conditions**:
@@ -298,6 +298,236 @@ The PNP approach successfully bridges the gap between physical modeling and perc
 - **Riemannian Optimization**: See [Absil et al., "Optimization Algorithms on Matrix Manifolds"](https://sites.uclouvain.be/absil/OAMM/)
 - **Levenberg-Marquardt**: [Madsen et al., "Methods for Non-Linear Least Squares Problems"](http://www2.imm.dtu.dk/pubdb/pubs/3215-full.html)
 - **Perceptual Loss Functions**: [Johnson et al., "Perceptual Losses for Real-Time Style Transfer"](https://arxiv.org/abs/1603.08155)
+
+---
+
+## Appendix A: Eigenvalue Usage in PNP Training
+
+The **sigma matrices** (eigenvalues of M) play crucial roles beyond just mathematical characterization—they actively control training dynamics and loss weighting. This appendix details their specific usage in the neural network training pipeline.
+
+### A.1 Mathematical Definition
+
+The sigma values are the eigenvalues of the Riemannian metric tensor:
+
+```python
+# Compute M matrix eigenvalues (complex-valued in general)
+σ = torch.linalg.eigvals(M)  # Shape: [5]
+
+# Take absolute values for numerical stability
+sigma = torch.abs(σ)         # Real-valued eigenvalues
+```
+
+### A.2 Four Primary Uses in Training
+
+#### A.2.1 Metric Weighting for Sample Importance
+
+**Location**: `src/pnp_synth/neural/cnn.py:501`
+
+```python
+# Use two largest eigenvalues to weight sample importance
+metric_weight = torch.sqrt((sorted(sigma)[-1] * sorted(sigma)[-2]))
+
+if self.weight_type == "pnp":
+    weight = metric_weight  # Scale loss by perceptual sensitivity
+```
+
+**Purpose**: Samples with higher perceptual sensitivity (larger eigenvalues) receive **higher loss weights**, making the network focus more on perceptually critical examples.
+
+**Mathematical interpretation**:
+```
+metric_weight = √(λ₁ × λ₂)
+```
+where λ₁, λ₂ are the two largest eigenvalues. This geometric mean balances extreme values while emphasizing high-sensitivity samples.
+
+#### A.2.2 Levenberg-Marquardt Lambda Initialization
+
+**Location**: `src/pnp_synth/neural/cnn.py:545-548`
+
+```python
+# Find maximum eigenvalue across entire dataset
+if max(sigma) > lambda_max:
+    lambda_max = max(sigma)
+
+# Initialize LM damping parameter
+lambda0 = lambda_max ** 2
+```
+
+**Purpose**: The **initial damping parameter** is set proportional to the **worst conditioning** in the dataset:
+
+```
+λ₀ = (max_dataset(eigenvalue))²
+```
+
+This ensures that even the most ill-conditioned samples can be trained stably from the beginning.
+
+#### A.2.3 Dataset-Wide Eigenvalue Statistics
+
+**Location**: `src/pnp_synth/neural/cnn.py:542-544`
+
+```python
+# Compute mean eigenvalue profile across dataset
+sigma_sorted = torch.sort(torch.abs(sigma), descending=False)[0]
+sigma_mean = sigma_sorted if sigma_mean is None else sigma_mean + sigma_sorted
+
+# Final result: sigma_mean / count (averaged over all samples)
+```
+
+**Purpose**: Creates a **representative eigenvalue profile** that characterizes the typical conditioning of the dataset. Used for:
+- **Diagnostic analysis** of dataset difficulty
+- **Mean damping strategy** (one of the LM damping options)
+- **Threshold setting** for adaptive algorithms
+
+#### A.2.4 Regularization Threshold Control
+
+**Location**: `src/pnp_synth/neural/cnn.py:179-180`
+
+```python
+self.LMA_lambda0 = batch['lambda0']  # From max eigenvalue
+self.LMA_threshold = self.LMA_lambda0  # Prevent over-regularization
+```
+
+**Purpose**: The eigenvalue-derived λ₀ sets the **maximum allowed damping** to prevent the algorithm from becoming too conservative and losing the benefits of the Riemannian geometry.
+
+### A.3 Adaptive Training Dynamics
+
+The eigenvalues enable **data-driven adaptation** of the training process:
+
+#### A.3.1 Sample-Level Adaptation
+```python
+# Conceptual training step
+for sample in batch:
+    sigma = eigenvalues(M[sample])
+
+    # Higher eigenvalues → higher importance
+    sample_weight = sqrt(max_two_eigenvalues(sigma))
+
+    # Scale loss by perceptual significance
+    loss = sample_weight * PNP_loss(pred, true, M[sample])
+```
+
+#### A.3.2 Global Regularization Adaptation
+```python
+# Initialization phase
+dataset_max_eigenvalue = max(all_eigenvalues_in_dataset)
+initial_damping = dataset_max_eigenvalue ** 2
+
+# Training phase with adaptive damping
+current_damping = adjust_based_on_validation(initial_damping)
+regularized_M = M + current_damping * damping_matrix
+```
+
+### A.4 Physical and Perceptual Interpretation
+
+#### A.4.1 Eigenvalue Magnitude Ranges
+
+Based on the empirical analysis and scaling requirements:
+
+| Eigenvalue Range | Physical Interpretation | Training Impact |
+|------------------|------------------------|-----------------|
+| **10¹¹ - 10¹³** | Extreme perceptual sensitivity (pitch, fundamental modes) | Dominates loss landscape, requires heavy damping |
+| **10⁸ - 10¹⁰** | High sensitivity (timbre-critical parameters) | Significant loss contribution, moderate damping |
+| **10⁶ - 10⁸** | Moderate sensitivity (envelope, subtle timbral effects) | Standard training dynamics |
+| **10³ - 10⁶** | Low sensitivity (fine details, perceptually minor) | Minimal impact on training |
+
+#### A.4.2 Training Regime Classification
+
+The eigenvalue distribution determines the training regime:
+
+```python
+if max(sigma) > 1e12:
+    # Extreme conditioning regime
+    regime = "high_sensitivity"
+    required_damping = "very_high"  # λ ≈ 1e20+
+
+elif max(sigma) > 1e9:
+    # Standard PNP regime
+    regime = "moderate_sensitivity"
+    required_damping = "high"       # λ ≈ 1e15-1e20
+
+else:
+    # Low conditioning regime
+    regime = "low_sensitivity"
+    required_damping = "moderate"   # λ ≈ 1e10-1e15
+```
+
+### A.5 Numerical Considerations
+
+#### A.5.1 Complex Eigenvalue Handling
+
+M matrices can have complex eigenvalues due to:
+- **Numerical precision errors** in nearly-singular matrices
+- **Non-symmetric floating-point arithmetic** in Jacobian computation
+- **Device-specific rounding** (MPS vs CUDA vs CPU)
+
+**Solution**:
+```python
+# Always take absolute value for stability
+sigma = torch.abs(torch.linalg.eigvals(M))
+```
+
+#### A.5.2 Eigenvalue Sorting and Stability
+
+```python
+# Consistent ordering for mean computation
+sigma_sorted = torch.sort(sigma, descending=False)[0]  # Ascending order
+
+# Robust two-largest selection
+top_two = sorted(sigma, reverse=True)[:2]
+metric_weight = torch.sqrt(top_two[0] * top_two[1])
+```
+
+### A.6 Diagnostic Applications
+
+#### A.6.1 Dataset Quality Assessment
+
+```python
+# Analyze eigenvalue distribution
+eigenvalue_stats = {
+    'condition_numbers': [max(sigma)/min(sigma) for sigma in all_sigmas],
+    'max_eigenvalues': [max(sigma) for sigma in all_sigmas],
+    'spectral_radius_distribution': histogram(max_eigenvalues),
+    'mean_condition_number': mean(condition_numbers)
+}
+```
+
+#### A.6.2 Training Monitoring
+
+Key metrics to monitor during training:
+- **Eigenvalue drift**: How M matrix conditioning changes during training
+- **Damping effectiveness**: Ratio of successful vs failed optimization steps
+- **Sample weight distribution**: Balance between high and low sensitivity samples
+- **Convergence indicators**: Relationship between eigenvalue spread and convergence rate
+
+### A.7 Research Applications
+
+The eigenvalue analysis enables several research directions:
+
+#### A.7.1 Perceptual Sensitivity Analysis
+- **Parameter importance ranking** via eigenvalue magnitudes
+- **Perceptual subspace identification** via eigenvector analysis
+- **Cross-dataset conditioning comparison** for generalization studies
+
+#### A.7.2 Optimization Algorithm Development
+- **Eigenvalue-aware learning rates** for different parameter directions
+- **Preconditioning strategies** based on spectral properties
+- **Adaptive precision algorithms** that switch float32/float64 based on conditioning
+
+### A.8 Implementation Notes
+
+#### A.8.1 Computational Efficiency
+```python
+# Avoid full eigendecomposition when possible
+if only_need_max_eigenvalue:
+    max_eigenval = torch.max(torch.real(torch.linalg.eigvals(M)))
+else:
+    # Full decomposition for analysis
+    eigenvals, eigenvecs = torch.linalg.eig(M)
+```
+
+#### A.8.2 Memory Management
+- **Eigenvalues are small**: 5 values per sample vs 25 for full M matrix
+- **Can be precomputed**: Store with M matrices for efficiency
+- **Device considerations**: Keep on CPU for analysis, GPU for training
 
 ---
 
