@@ -169,3 +169,106 @@ The **500× slowdown** is mathematically inevitable given the complexity of diff
 ---
 
 *Analysis based on computational profiling of TASLP23 pipeline on MacBook Pro M3 Max (40 GPU cores, 128GB RAM) using MPS acceleration and float32 precision.*
+
+---
+
+## Appendix: Claude's Analysis of the JTFS implementation
+
+Here's the exact distribution of the 289 paths across the 13 temporal scales for J=13:
+
+* Path count per temporal scale:
+  - j=0: 14 paths (finest temporal scale)
+  - j=1: 21 paths
+  - j=2: 23 paths
+  - j=3: 23 paths
+  - j=4: 25 paths
+  - j=5: 25 paths
+  - j=6: 25 paths
+  - j=7: 25 paths
+  - j=8: 27 paths (peak)
+  - j=9: 27 paths (peak)
+  - j=10: 24 paths
+  - j=11: 19 paths
+  - j=12: 2 paths
+  - j=13: 9 paths (coarsest temporal scale)
+
+* Key insights:
+  - The distribution is not uniform - it peaks at intermediate scales (j=8,9) with 27 paths each
+  - Coarsest scales (j=12,13) have fewer paths due to the mathematical structure of the scattering transform
+  - The variation reflects different coefficient types: first-order scattering, second-order joint time-frequency coefficients, and lowpass terms
+  - With Q=(12,1), you get 12 filters per octave for first-order scattering, contributing to the higher path counts at most scales
+
+* This non-uniform distribution makes sense perceptually -
+  intermediate temporal scales capture the most relevant
+  time-frequency modulations for audio analysis.
+
+
+### JTFS Function call arguments from `src/pnp_synth/utils.py`
+
+#### JTFS Constructor Arguments:
+
+* Core Parameters (from jtfs_params):
+  - J=13: Number of temporal scales (creates scales j=0 to j=13, where j=0 is finest temporal resolution)
+  - shape=(2**16,): Expected input signal length (65,536 samples for FTM drums)
+  - Q=(12, 1): Filters per octave - 12 for first-order scattering, 1 for second-order
+  - Q_fr=1: Filters per octave in frequency dimension
+
+* Padding/Boundary Conditions:
+  - max_pad_factor=1: Temporal padding ≤ 1× filter support (conservative)
+  - max_pad_factor_fr=1: Frequency padding ≤ 1× filter support
+  - pad_mode='zero': Zero-padding in time
+  - pad_mode_fr='zero': Zero-padding in frequency
+
+* Transform Parameters:
+  - F=2: Local frequency averaging factor (reduces frequency resolution by 2×)
+  - out_type="list": Return format as list of path dictionaries (vs. tensor)
+
+* Post-initialization:
+  - average_global=True: Enable global temporal averaging (translation invariance)
+  - .to(device): Move to GPU/CPU as available
+
+* Key Effects:
+  - J=13 with Q=(12,1) creates 289 total scattering paths
+  - F=2 trades frequency resolution for noise robustness
+  - out_type="list" enables flexible coefficient processing per path
+  - Global averaging removes temporal structure for perceptual similarity
+
+#### How Many Octaves are Covered?
+
+The JTFS transform covers 12.0 octaves with the standard J=13
+configuration used in most experiments.
+
+* Q=(12, 1) means:
+  - 12 filters per octave for first-order scattering (temporal dimension)
+  - 1 filter per octave for second-order scattering (temporal dimension)
+* Q_fr=1 means 1 filter per octave in the frequency dimension
+
+* Actual filter structure:
+  - First-order temporal filters: 12 × 12 octaves = 144 filters
+  - Frequency filters: 1 × (frequency octaves) = ~12 filters
+  - Second-order combinations: Much sparser due to Q[1]=1
+
+* Key insight: The 289 total paths come from combinations of these
+  filters across different orders of scattering. The paths include:
+  - First-order scattering (137 paths)
+  - Second-order joint time-frequency scattering (most remaining paths)
+  - Lowpass terms
+
+* Frequency coverage:
+  - Range: 2.7 Hz to 11,025 Hz
+  - Sampling rate: 22,050 Hz (from FTM synthesis)
+  - Calculation: log₂(11,025/2.7) ≈ 12.0 octaves
+
+* Scale distribution:
+  - Each temporal scale j roughly corresponds to one octave
+  - j=0: ~5,512-11,025 Hz (highest)
+  - j=6: ~172-345 Hz (mid-range)
+  - j=13: ~1.3-2.7 Hz (lowest)
+
+* Alternative configuration:
+  - J=14 extends coverage to 13.0 octaves (1.3-11,025 Hz)
+  - Some experiments use this for deeper low-frequency analysis
+
+This 12-octave coverage spans the full musical range from sub-bass to
+high harmonics, making it suitable for comprehensive perceptual audio
+analysis in the PNP framework.
