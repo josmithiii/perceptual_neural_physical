@@ -184,7 +184,7 @@ def main():
 
     # Determine optimal batch size based on device and available memory
     if device.type == "mps":
-        BATCH_SIZE = 50  # Conservative for MPS to avoid memory issues
+        BATCH_SIZE = 200  # was 50
     elif device.type == "cuda":
         BATCH_SIZE = 100
     else:

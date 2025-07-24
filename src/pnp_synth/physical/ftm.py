@@ -93,6 +93,110 @@ def rectangular_drum(theta, logscale, **constants):
 
     return y
 
+
+def rectangular_drum_batch(theta_batch, logscale, **constants):
+    """
+    Batch-compatible version of rectangular_drum. No speedup observed on MPS (batch size 200 or less).
+    Jacobian computation is roughly 500x this cost according to Claude.
+
+    Args:
+        theta_batch: Tensor of shape [batch_size, 5] containing parameter vectors
+        logscale: Whether to apply log scaling
+        **constants: Same constants as rectangular_drum
+
+    Returns:
+        Tensor of shape [batch_size, dur] containing synthesized audio for each sample
+    """
+    # Use the same device as the input tensor
+    device = theta_batch.device
+    batch_size = theta_batch.shape[0]
+
+    # Extract parameters with batch dimension - shape [batch_size]
+    w11 = 10 ** theta_batch[:, 0] if logscale else theta_batch[:, 0]
+    tau11 = theta_batch[:, 1]
+    p = 10 ** theta_batch[:, 2] if logscale else theta_batch[:, 2]
+    D = 10 ** theta_batch[:, 3] if logscale else theta_batch[:, 3]
+    alpha_side = theta_batch[:, 4]
+
+    # Constants - same for all samples
+    l0 = torch.tensor(constants['l0'], dtype=theta_batch.dtype).to(device)
+    pi = torch.tensor(np.pi, dtype=theta_batch.dtype).to(device)
+
+    # Compute batch-wise intermediate values - shape [batch_size]
+    l2 = l0 * alpha_side
+    beta_side = alpha_side + 1 / alpha_side
+    S = l0 / pi * ((D * w11 * alpha_side)**2 + (p * alpha_side / tau11)**2)**0.25
+    c_sq = (
+        alpha_side * (1 / beta_side - p**2 * beta_side) / tau11**2
+        + alpha_side * w11**2 * (1 / beta_side - D**2 * beta_side)
+    ) * (l0 / np.pi)**2
+    T = c_sq  # scalar per batch
+    d1 = 2 * (1 - p * beta_side) / tau11
+    d3 = -2 * p * alpha_side / tau11 * (l0 / pi) **2
+    EI = S ** 4
+
+    # Mode indices - same for all samples
+    mu = torch.arange(1, constants['m1'] + 1, dtype=theta_batch.dtype).to(device)  # [m1]
+    mu2 = torch.arange(1, constants['m2'] + 1, dtype=theta_batch.dtype).to(device)  # [m2]
+    dur = constants['dur']
+
+    # Batch computation of modal properties
+    # n computation - needs broadcasting for batch dimension
+    # l2 has shape [batch_size], need to broadcast properly
+    n_batch = (mu[None, :, None] * pi / l0) ** 2 + (mu2[None, None, :] * pi / l2[:, None, None])**2  # [batch_size, m1, m2]
+    n2_batch = n_batch ** 2
+
+    # K is the same for all samples since x1, x2 are constants
+    K = torch.sin(mu[:, None] * pi * constants['x1']) * torch.sin(mu2[None, :] * pi * constants['x2'])  # [m1, m2]
+    K_batch = K[None, :, :].expand(batch_size, -1, -1)  # [batch_size, m1, m2]
+
+    # Batch computation of modal parameters
+    beta_batch = EI[:, None, None] * n2_batch + T[:, None, None] * n_batch  # [batch_size, m1, m2]
+    alpha_batch = (d1[:, None, None] - d3[:, None, None] * n_batch) / 2  # [batch_size, m1, m2]
+    omega_batch = torch.sqrt(torch.abs(beta_batch - alpha_batch**2))  # [batch_size, m1, m2]
+
+    # Mode rejection based on Nyquist frequency - computed per batch sample
+    mode_rejected_batch = (omega_batch / 2 / pi) > constants['sr'] / 2  # [batch_size, m1, m2]
+
+    # For simplicity, use the same mode correction for all batch samples
+    # (More sophisticated version could compute per-sample corrections)
+    mode_rejected_any = torch.any(mode_rejected_batch, dim=0)  # [m1, m2]
+    mode1_corr = constants['m1'] - max(torch.sum(mode_rejected_any, dim=0)) if constants['m1']-max(torch.sum(mode_rejected_any, dim=0))!=0 else constants['m1']
+    mode2_corr = constants['m2'] - max(torch.sum(mode_rejected_any, dim=1)) if constants['m2']-max(torch.sum(mode_rejected_any, dim=1))!=0 else constants['m2']
+
+    # Batch computation of yi
+    N_batch = l0 * l2 / 4  # [batch_size]
+    yi_batch = (
+        constants['h']
+        * torch.sin(mu[None, :, None] * pi * constants['x1'])
+        * torch.sin(mu2[None, None, :] * pi * constants['x2'])
+        / omega_batch  # [batch_size, m1, m2]
+    )
+
+    # Time evolution - this is the expensive part
+    time_steps = torch.linspace(0, dur, dur, dtype=theta_batch.dtype).to(device) / constants['sr']  # [dur]
+
+    # Batch time evolution computation - shape [batch_size, m1, m2, dur]
+    y_time = torch.exp(-alpha_batch[:, :, :, None] * time_steps[None, None, None, :]) * torch.sin(
+        omega_batch[:, :, :, None] * time_steps[None, None, None, :]
+    )
+
+    # Apply yi scaling and K weighting
+    y_batch = yi_batch[:, :, :, None] * y_time  # [batch_size, m1, m2, dur]
+    y_full_batch = y_batch * K_batch[:, :, :, None] / N_batch[:, None, None, None]
+
+    # Apply mode correction (same for all batch samples)
+    y_full_batch = y_full_batch[:, :mode1_corr, :mode2_corr, :]
+
+    # Sum over modes and normalize
+    y_final = torch.sum(y_full_batch, dim=(1, 2))  # [batch_size, dur]
+
+    # Normalize each sample independently
+    y_max = torch.max(torch.abs(y_final), dim=1, keepdim=True)[0]  # [batch_size, 1]
+    y_final = y_final / y_max
+
+    return y_final
+
 def physics2percep(S4, T, d1, d3, l, lm):
     c2 = T/lm
     sigma1 = d3/(2*lm) * (np.pi/l)**2 - d1/(2*lm)
