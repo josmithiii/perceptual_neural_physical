@@ -1,5 +1,7 @@
 # Computational Analysis: TASLP23 M Matrix Generation
 
+by Claude Sonnet 4, 2025-07-24
+
 ## Overview
 
 This document analyzes why Jacobian computation in `12_compute_lmastep_fast.py` is approximately **500× slower** than forward synthesis alone. The analysis traces through the complete Perceptual-Neural-Physical (PNP) pipeline to identify computational bottlenecks.

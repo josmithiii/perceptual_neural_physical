@@ -65,3 +65,58 @@ The `sbatch/` directory contains cluster job submission scripts for parallel tra
 - **AMChirp**: Amplitude-modulated chirp synthesis (3 parameters: f0, fm, γ)
 
 All scripts accept command-line arguments for flexible configuration including synthesis type, parameter scaling, optimization settings, and batch sizes.
+
+## Compute Time in `12_compute_lmastep_fast.py`
+
+⏺ Based on Claude Sonnet 4's analysis, here's the computational breakdown for `make Mt23f`:
+
+  Computational Pipeline (Per Sample)
+
+  1. Automatic Differentiation - 95% of compute time 🔥
+
+  - 5× forward pass penalty: Forward-mode AD computes one Jacobian column per forward pass
+  - Each forward pass: Parameter scaling → FTM synthesis → JTFS analysis
+  - Cannot parallelize: AD requires sequential computation
+
+  2. FTM Physical Synthesis - 80% of single forward pass 🔥
+
+  - Massive tensor operations: (10×10×65,536) = 6.5M elements per sample
+  - Memory intensive: ~1.3GB tensors for time evolution
+  - Expensive operations:
+    - exp(-alpha * time) - exponential decay for 6.5M elements
+    - sin(omega * time) - oscillation for 6.5M elements
+    - Modal frequency calculations
+
+  3. JTFS Perceptual Analysis - 15% of single forward pass
+
+  - Multi-scale wavelet transforms on 65,536 audio samples
+  - Complex-valued convolutions across 13 frequency scales
+  - GPU-accelerated but still significant
+
+  4. M Matrix Computation - 5% of single forward pass
+
+  - J.T @ J matrix multiply (trivial)
+  - Eigenvalue decomposition (cheap)
+
+  Bottleneck Analysis
+
+  The killer is the 5× multiplier from automatic differentiation. Each sample requires:
+  - 1 forward pass for function value
+  - 5 additional forward passes for Jacobian (one per parameter)
+  - Total: 6× the cost of a single forward pass
+
+  Why it's slow:
+  - Memory bandwidth: Moving 1.3GB tensors between GPU operations
+  - Transcendental functions: exp() and sin() on millions of elements
+  - Sequential AD: Cannot parallelize the 5 Jacobian computations
+
+  Time Estimate
+
+  With 99,950 samples remaining at ~200 samples processed in 20 minutes:
+  - Rate: ~10 samples/minute
+  - Remaining time: 166 hours → **7 days**
+
+  The batch size increase you suggested could help, but the fundamental bottleneck is the 6× forward pass requirement per sample due to automatic
+  differentiation.
+
+For more details, see the [full report](README_COMPUTE_TIME.md).

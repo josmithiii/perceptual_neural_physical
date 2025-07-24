@@ -19,7 +19,11 @@
       "Bash(timeout 300 make ei25pl)",
       "Bash(timeout 600 make ei25pl)",
       "Bash(cat:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(cp:*)",
+      "Bash(TMP_WEIGHT_DIR=/tmp make -n rt23pnpl)",
+      "Bash(TMP_WEIGHT_DIR=/tmp make rt23pnpl)",
+      "Bash(jobs)"
     ],
     "deny": []
   }
