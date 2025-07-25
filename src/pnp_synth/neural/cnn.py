@@ -179,10 +179,8 @@ class EffNet(pl.LightningModule):
             self.LMA_lambda0 = batch['lambda0'].to(self.current_device)
             self.LMA_threshold = self.LMA_lambda0 # set threshold to be the initialized lambda
         except:
-            M = None
-            M_mean = None
-            self.LMA_lambda0 = None
-            self.LMA_theshold = None
+            print(f"ERROR: PNP matrices (M, M_mean, lambda0) missing from batch. Run 12_compute_lmastep_fast.py first to generate M matrices.")
+            sys.exit(1)
 
         if self.LMA_lambda is None and self.LMA_mode == "adaptive":
             self.LMA_lambda = self.LMA_lambda0 #initialize lambda to be intiialized lambda
@@ -517,17 +515,21 @@ class DrumData(Dataset):
 
     def M_from_id(self,id):
         #load from h5
-        if os.path.exists(self.weights_dir):
-            with h5py.File(self.weights_dir, "r") as f:
-                M = torch.tensor(np.array(f['M'][str(id)]))
-                sigma = torch.abs(torch.tensor(f['sigma'][str(id)]))
-                try:
-                    JdagJ = torch.tensor(np.array(f['JdagJ'][str(id)]))
-                except:
-                    JdagJ = None
-            return M, sigma, JdagJ
-        else:
-            return None, None, None
+        if not os.path.exists(self.weights_dir):
+            print(f"ERROR: PNP weights file not found: {self.weights_dir}. Run 12_compute_lmastep_fast.py first to generate M matrices.")
+            sys.exit(1)
+
+        with h5py.File(self.weights_dir, "r") as f:
+            if str(id) not in f['M']:
+                print(f"ERROR: ID {id} not found in PNP weights file {self.weights_dir}.")
+                sys.exit(1)
+            M = torch.tensor(np.array(f['M'][str(id)]))
+            sigma = torch.abs(torch.tensor(f['sigma'][str(id)]))
+            try:
+                JdagJ = torch.tensor(np.array(f['JdagJ'][str(id)]))
+            except:
+                JdagJ = None
+        return M, sigma, JdagJ
 
 
     def make_M_mean(self):
