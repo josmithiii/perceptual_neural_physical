@@ -229,6 +229,24 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "TASLP23: Compute LMA matrices (Mt23f)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/taslp23/12_compute_lmastep_fast.py",
+            "args": [
+                "./outputs/taslp23",
+                "0",
+                "100000",
+                "0"
+            ],
+            "cwd": "${workspaceFolder}/taslp23",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
         }
     ]
 }

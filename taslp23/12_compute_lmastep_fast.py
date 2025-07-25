@@ -255,7 +255,7 @@ def main():
     torch.autograd.set_detect_anomaly(True)
 
     # Use ThreadPoolExecutor for I/O operations
-    with ThreadPoolExecutor(max_workers=4) as io_executor:
+    with ThreadPoolExecutor(max_workers=8) as io_executor:
         processed_count = 0
 
         for batch_start in range(0, len(samples_to_process), BATCH_SIZE):
