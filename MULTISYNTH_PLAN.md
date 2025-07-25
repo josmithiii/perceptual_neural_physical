@@ -334,4 +334,202 @@ def validate_synth_type(synth_type):
 - Validate that existing trained models still work
 - Check backward compatibility of data loading
 
+#### Lightweight Backward Compatibility Testing
+
+**Efficient verification strategies that avoid expensive full training pipelines:**
+
+**1. Audio Generation Verification** (Most Critical - ~10 minutes)
+```bash
+# Generate reference data before modifications
+make at23
+cp ./outputs/taslp23/x/taslp23_train_audio.h5 ./reference_ftm_audio.h5
+
+# Test after modifications (should default to FTM)
+make at23  # OR: make at23-ftm for explicit FTM
+
+# Compare H5 files for identical audio output
+python -c "
+import h5py
+import numpy as np
+with h5py.File('./reference_ftm_audio.h5', 'r') as ref:
+    with h5py.File('./outputs/taslp23/x/ftm_train_audio.h5', 'r') as new:
+        for key in ref['x'].keys():
+            if not np.allclose(ref['x'][key][:], new['x'][key][:], rtol=1e-10):
+                print(f'MISMATCH: Sample {key}')
+            else:
+                print(f'MATCH: Sample {key}')
+"
+```
+
+**2. JTFS Feature Comparison** (Fast subset test - ~15 minutes)
+```bash
+# Test first 10 samples only (much faster than 100k)
+python taslp23/02_compute_pnp_jacobian.py ./outputs/taslp23 0 10 1 ftm 1
+
+# Compare JTFS features and Jacobians
+python -c "
+import numpy as np
+ref_S = np.load('./reference/S/train/ftm_0000000_jtfs.npy')
+new_S = np.load('./outputs/taslp23/S/train/ftm_0000000_jtfs.npy')
+print(f'JTFS match: {np.allclose(ref_S, new_S, rtol=1e-10)}')
+
+ref_J = np.load('./reference/J/train/ftm_0000000_grad_jtfs.npy')
+new_J = np.load('./outputs/taslp23/J/train/ftm_0000000_grad_jtfs.npy')
+print(f'Jacobian match: {np.allclose(ref_J, new_J, rtol=1e-10)}')
+"
+```
+
+**3. Parameter Loading Verification** (~5 minutes)
+```python
+# test_backward_compatibility.py
+import pandas as pd
+import numpy as np
+from synth_registry import SYNTHESIZER_CONFIGS
+import taslp23
+
+def test_parameter_loading():
+    # Original method vs registry method should be identical
+    original_df = taslp23.load_fold("ftm", "train")
+    new_df = taslp23.load_fold("ftm", "train")  # Updated function
+    assert original_df.equals(new_df), "DataFrames don't match!"
+    print("✓ Parameter loading backward compatible")
+
+def test_parameter_scaling():
+    # Parameter scaling should remain identical
+    original_nus, original_scaler = taslp23.scale_theta(True, "ftm")
+    new_nus, new_scaler = taslp23.scale_theta(True, "ftm")
+    assert np.allclose(original_nus, new_nus), "Parameter scaling changed!"
+    print("✓ Parameter scaling backward compatible")
+```
+
+**4. Synthesis Function Verification** (~5 minutes)
+```python
+def test_synthesis_functions():
+    import torch
+    from pnp_synth.physical import ftm
+    from synth_registry import SYNTHESIZER_CONFIGS
+
+    # Test with actual parameters from CSV
+    theta = torch.tensor([2.43, 0.12, -4.66, -4.73, 0.046])
+
+    # Original vs registry-based call should be identical
+    original_audio = ftm.rectangular_drum(theta, True, **ftm.constants)
+
+    config = SYNTHESIZER_CONFIGS["ftm"]
+    synth_fn = getattr(ftm, "rectangular_drum")
+    new_audio = synth_fn(theta, True, **ftm.constants)
+
+    assert torch.allclose(original_audio, new_audio), "Synthesis output changed!"
+    print("✓ Synthesis function backward compatible")
+```
+
+**5. Quick Pipeline Smoke Test** (~15 minutes)
+```bash
+# Create test subset (first 5 samples only)
+head -6 taslp23/data/ftm/train_param_log.csv > test_train_subset.csv
+
+# Test entire pipeline on tiny dataset
+python taslp23/01_generate_audio.py ./test_outputs ftm
+python taslp23/02_compute_pnp_jacobian.py ./test_outputs 0 5 1 ftm 1
+python taslp23/03_train_effnet_ploss.py ./test_outputs test_run 1 1 adam ftm
+
+# Should complete without errors and maintain file structure
+```
+
+**6. File Structure and Naming Verification** (~5 minutes)
+```python
+def test_file_naming_compatibility():
+    import os
+    import glob
+
+    # Verify H5 file naming conventions
+    expected_files = [
+        "./outputs/taslp23/x/taslp23_train_audio.h5",  # Current naming
+        "./outputs/taslp23/x/ftm_train_audio.h5"       # New naming
+    ]
+
+    # Verify JTFS/Jacobian file patterns
+    expected_patterns = [
+        "./outputs/taslp23/S/train/ftm_*_jtfs.npy",
+        "./outputs/taslp23/J/train/ftm_*_grad_jtfs.npy"
+    ]
+
+    for pattern in expected_patterns:
+        files = glob.glob(pattern)
+        assert len(files) > 0, f"No files found for pattern: {pattern}"
+        print(f"✓ Found {len(files)} files matching {pattern}")
+```
+
+**7. Make Target Compatibility Test** (~10 minutes)
+```bash
+# Test that existing make targets still work with defaults
+make at23    # Should default to FTM
+make jt23    # Should work with FTM
+make rt23pl  # Should run with FTM parameters
+
+# Test new explicit targets work identically
+make at23-ftm    # Explicit FTM should produce same result
+make jt23-ftm    # Explicit FTM Jacobian computation
+make rt23pl-ftm  # Explicit FTM training
+```
+
+**8. Comprehensive Automated Test Script**
+```python
+#!/usr/bin/env python3
+# test_multisynth_backward_compatibility.py
+import subprocess
+import os
+import h5py
+import numpy as np
+import tempfile
+
+def run_backward_compatibility_test():
+    """Comprehensive backward compatibility test suite."""
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        print("🧪 Testing multi-synthesizer backward compatibility...")
+
+        # 1. Audio generation test
+        print("1. Testing audio generation...")
+        result = subprocess.run([
+            "python", "taslp23/01_generate_audio.py",
+            temp_dir, "ftm"
+        ], capture_output=True, text=True)
+        assert result.returncode == 0, f"Audio generation failed: {result.stderr}"
+
+        # 2. JTFS computation test
+        print("2. Testing JTFS computation...")
+        result = subprocess.run([
+            "python", "taslp23/02_compute_pnp_jacobian.py",
+            temp_dir, "0", "3", "1", "ftm", "1"
+        ], capture_output=True, text=True)
+        assert result.returncode == 0, f"JTFS computation failed: {result.stderr}"
+
+        # 3. File structure verification
+        print("3. Verifying file structure...")
+        expected_files = [
+            f"{temp_dir}/x/ftm_train_audio.h5",
+            f"{temp_dir}/S/train/ftm_0000000_jtfs.npy",
+            f"{temp_dir}/J/train/ftm_0000000_grad_jtfs.npy"
+        ]
+
+        for expected_file in expected_files:
+            assert os.path.exists(expected_file), f"Missing file: {expected_file}"
+
+        print("✅ All backward compatibility tests passed!")
+
+if __name__ == "__main__":
+    run_backward_compatibility_test()
+```
+
+**Recommended Testing Sequence** (Total: ~45 minutes)
+1. **Synthesis function test** (5 min) - Quick verification of core functions
+2. **Parameter loading test** (5 min) - Verify registry system works correctly
+3. **Audio comparison test** (10 min) - Most critical verification
+4. **JTFS comparison test** (15 min) - Verify feature extraction unchanged
+5. **File structure test** (5 min) - Check naming conventions and paths
+6. **Make target test** (10 min) - Ensure existing workflow still works
+
+This provides **high confidence in backward compatibility** without expensive full training runs.
+
 This plan provides a comprehensive strategy for generalizing the TASLP23 pipeline to support multiple synthesizer types while maintaining backward compatibility and enabling future extensibility.
