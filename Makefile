@@ -35,15 +35,23 @@ h help:
 	@echo "  asm24phys      - Generate MERSENNE24 string physics-based audio data"
 	@echo "  asm24all       - Generate all MERSENNE24 string audio data"
 	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
-	@echo "  at23           - Generate TASLP23 audio data"
-	@echo "  jt23           - Compute TASLP23 Jacobians"  
+	@echo "  at23           - Generate TASLP23 audio data (default FTM)"
+	@echo "  at23-ftm       - Generate TASLP23 FTM drum audio data (explicit)"
+	@echo "  at23-string    - Generate TASLP23 string synthesis audio data (6 params)"
+	@echo "  jt23           - Compute TASLP23 Jacobians (default FTM)"  
+	@echo "  jt23-ftm       - Compute TASLP23 FTM Jacobians (explicit)"
+	@echo "  jt23-string    - Compute TASLP23 string Jacobians (6 parameters)"
 	@echo "  jt23f          - Compute TASLP23 Jacobians (MPS accelerated, float32)"
 	@echo "  jt23fp         - Compute TASLP23 Jacobians (CPU float64 for precision)"  
-	@echo "  Mt23           - Compute TASLP23 LMA matrices"
+	@echo "  Mt23           - Compute TASLP23 LMA matrices (default FTM)"
 	@echo "  Mt23f          - Compute TASLP23 LMA matrices (MPS accelerated, batch processing)"
+	@echo "  Mt23f-string   - Compute TASLP23 string LMA matrices (MPS accelerated)"
 	@echo "  Mt23fp         - Compute TASLP23 LMA matrices (CPU float64 for precision)"
+	@echo "  Mt23fp-string  - Compute TASLP23 string LMA matrices (CPU float64 precision)"
 	@echo "  mht23          - Merge TASLP23 H5 files"
-	@echo "  cat23          - Clean TASLP23 audio data"
+	@echo "  cat23          - Clean all TASLP23 audio data"
+	@echo "  cat23-string   - Clean TASLP23 string audio data"
+	@echo "  cjt23-string   - Clean TASLP23 string JTFS/Jacobian data"
 	@echo ""
 	@echo "Training:"
 	@echo "  ri25pl         - Train EfficientNet with P-loss (ICASSP25)"
@@ -60,13 +68,22 @@ h help:
 	@echo "  rm24all        - Run complete MERSENNE24 string training pipeline"
 	@echo "  ri23pl         - Train EfficientNet with P-loss (ICASSP23)"
 	@echo "  ri23pnpl       - Train EfficientNet with PNP-loss (ICASSP23)"
-	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23)"
-	@echo "  rt23sl         - Train EfficientNet with Spectral-loss (TASLP23)"
-	@echo "  rt23pnpl       - Train EfficientNet with PNP-loss (TASLP23)"
+	@echo "  rt23pl         - Train EfficientNet with P-loss (TASLP23, default FTM)"
+	@echo "  rt23pl-ftm     - Train EfficientNet with P-loss (TASLP23 FTM drums)"
+	@echo "  rt23pl-string  - Train EfficientNet with P-loss (TASLP23 string, 6 params)"
+	@echo "  rt23sl         - Train EfficientNet with Spectral-loss (TASLP23, default FTM)"
+	@echo "  rt23sl-string  - Train EfficientNet with Spectral-loss (TASLP23 string)"
+	@echo "  rt23pnpl       - Train EfficientNet with PNP-loss (TASLP23, default FTM)"
+	@echo "  rt23pnpl-string - Train EfficientNet with PNP-loss (TASLP23 string)"
+	@echo "  rt23ft-pnpl    - Fine-tune with PNP-loss (TASLP23, default FTM)"
+	@echo "  rt23ft-pnpl-string - Fine-tune with PNP-loss (TASLP23 string)"
+	@echo "  rt23ft-mss     - Fine-tune with MSS-loss (TASLP23, default FTM)"
+	@echo "  rt23ft-mss-string - Fine-tune with MSS-loss (TASLP23 string)"
+	@echo "  rt23all        - Run all TASLP23 training variants (default FTM)"
+	@echo "  rt23all-ftm    - Run all TASLP23 FTM training variants"
+	@echo "  rt23all-string - Run all TASLP23 string training variants"
+	@echo "  rt23all-multi  - Run complete multi-synthesizer training pipeline"
 	@echo "  clean-tmp-matrices - Clean temporary matrix files in /tmp/M_log"
-	@echo "  rt23ft-pnpl    - Fine-tune with PNP-loss (TASLP23)"
-	@echo "  rt23ft-mss     - Fine-tune with MSS-loss (TASLP23)"
-	@echo "  rt23all        - Run all TASLP23 training variants"
 	@echo ""
 	@echo "Evaluation:"
 	@echo "  ei25pl         - Evaluate P-loss model (ICASSP25)"
@@ -275,6 +292,8 @@ csm24 clean-strings-mersenne24: cm24
 # current/latest research direction at the time the website examples
 # were generated.
 
+# ==================== FTM (Default/Legacy) ====================
+
 # File target - only runs if output doesn't exist  
 $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)
@@ -283,6 +302,26 @@ $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5:
 at23 audio-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "✓ TASLP23 audio data generated"
 
+# ==================== FTM (Explicit) ====================
+
+# File target for explicit FTM synthesizer
+$(SAVE_DIR)/taslp23/x/ftm_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
+	source .venv/bin/activate && python taslp23/01_generate_audio.py $(SAVE_DIR)/taslp23 ftm
+
+at23-ftm audio-taslp23-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "✓ TASLP23 FTM drum audio data generated"
+
+# ==================== STRING SYNTHESIZER ====================
+
+# File target for string synthesizer audio generation
+$(SAVE_DIR)/taslp23/x/string_train_audio.h5:
+	@mkdir -p $(SAVE_DIR)
+	source .venv/bin/activate && python taslp23/01_generate_audio.py $(SAVE_DIR)/taslp23 string
+
+at23-string audio-taslp23-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "✓ TASLP23 string synthesis audio data generated"
+
 $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)
 	source .venv/bin/activate && python taslp23/01_generate_audio_fast.py $(SAVE_DIR)/taslp23_fast
@@ -290,13 +329,44 @@ $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5:
 at23f audio-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
 	@echo "✓ TASLP23 audio data fast generated"
 
+# ==================== CLEANUP TARGETS ====================
+
 cat23 clean-audio-taslp23:
 	-/bin/rm -rf $(SAVE_DIR)/taslp23/x/
+	@echo "✓ All TASLP23 audio data cleaned"
 
-# Compute PNP Jacobians for TASLP23 to ./outputs/taslp23/x/
+cat23-ftm clean-audio-taslp23-ftm:
+	-/bin/rm -f $(SAVE_DIR)/taslp23/x/ftm_*_audio.h5
+	@echo "✓ TASLP23 FTM audio data cleaned"
+
+cat23-string clean-audio-taslp23-string:
+	-/bin/rm -f $(SAVE_DIR)/taslp23/x/string_*_audio.h5
+	@echo "✓ TASLP23 string audio data cleaned"
+
+cjt23 clean-jacobian-taslp23:
+	-/bin/rm -rf $(SAVE_DIR)/taslp23/S/ $(SAVE_DIR)/taslp23/J/
+	@echo "✓ All TASLP23 JTFS and Jacobian data cleaned"
+
+cjt23-string clean-jacobian-taslp23-string:
+	-/bin/rm -f $(SAVE_DIR)/taslp23/S/*/string_*_jtfs.npy $(SAVE_DIR)/taslp23/J/*/string_*_grad_jtfs.npy
+	@echo "✓ TASLP23 string JTFS and Jacobian data cleaned"
+
+# ==================== JACOBIAN COMPUTATION ====================
+
+# Compute PNP Jacobians for TASLP23 to ./outputs/taslp23/x/ (legacy default)
 jt23 jacobian-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing PNP Jacobian matrices for TASLP23..."
-	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 0 1
+	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 ftm 1
+
+# Compute PNP Jacobians for FTM (explicit)
+jt23-ftm jacobian-taslp23-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "Computing PNP Jacobian matrices for TASLP23 FTM drums..."
+	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 1000 1 ftm 1
+
+# Compute PNP Jacobians for String synthesizer
+jt23-string jacobian-taslp23-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Computing PNP Jacobian matrices for TASLP23 string synthesis (6 parameters)..."
+	source .venv/bin/activate && python taslp23/02_compute_pnp_jacobian.py $(SAVE_DIR)/taslp23 0 100 1 string 1
 
 # Compute PNP Jacobians for TASLP23 to ./outputs/taslp23_fast/x/
 jt23f jacobian-taslp23-fast: $(SAVE_DIR)/taslp23_fast/x/taslp23_train_audio.h5
@@ -312,7 +382,9 @@ clean-tmp-matrices:
 	@echo "Cleaning temporary matrix files in /tmp/M_log..."
 	rm -rf /tmp/M_log
 
-# Basic training targets
+# ==================== TRAINING TARGETS ====================
+
+# Basic training targets (legacy default)
 rt23pl run-taslp23-ploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Training EfficientNet with P-loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
@@ -325,7 +397,35 @@ rt23pnpl run-taslp23-pnploss: Mt23f
 	@echo "Training EfficientNet with PNP-loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
-# Fine-tuning targets
+# FTM (Explicit) training targets
+rt23pl-ftm run-taslp23-ploss-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "Training EfficientNet with P-loss (TASLP23 FTM drums)..."
+	source .venv/bin/activate && python taslp23/03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23sl-ftm run-taslp23-specloss-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "Training EfficientNet with Spectral loss (TASLP23 FTM drums)..."
+	source .venv/bin/activate && python taslp23/04_train_effnet_specloss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+rt23pnpl-ftm run-taslp23-pnploss-ftm: Mt23f-ftm
+	@echo "Training EfficientNet with PNP-loss (TASLP23 FTM drums)..."
+	source .venv/bin/activate && python taslp23/05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
+
+# String synthesizer training targets
+rt23pl-string run-taslp23-ploss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Training EfficientNet with P-loss (TASLP23 string synthesis, 6 parameters)..."
+	source .venv/bin/activate && python taslp23/03_train_effnet_ploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23sl-string run-taslp23-specloss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Training EfficientNet with Spectral loss (TASLP23 string synthesis, 6 parameters)..."
+	source .venv/bin/activate && python taslp23/04_train_effnet_specloss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23pnpl-string run-taslp23-pnploss-string: Mt23f-string
+	@echo "Training EfficientNet with PNP-loss (TASLP23 string synthesis, 6 parameters)..."
+	source .venv/bin/activate && python taslp23/05_train_effnet_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+# ==================== FINE-TUNING TARGETS ====================
+
+# Fine-tuning targets (legacy default)
 rt23ft-pnpl run-taslp23-finetune-pnploss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Fine-tuning EfficientNet with PNP-loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/06_train_effnet_finetune_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
@@ -346,8 +446,43 @@ rt23ft2-mss run-taslp23-finetune2-mss: $(SAVE_DIR)/taslp23/x/taslp23_train_audio
 	@echo "Alternative fine-tuning EfficientNet with MSS loss (TASLP23)..."
 	source .venv/bin/activate && python taslp23/10_train_effnet_finetune_mss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam ftm
 
-# Complete TASLP23 training pipeline
+# String synthesizer fine-tuning targets
+rt23ft-pnpl-string run-taslp23-finetune-pnploss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Fine-tuning EfficientNet with PNP-loss (TASLP23 string synthesis)..."
+	source .venv/bin/activate && python taslp23/06_train_effnet_finetune_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23ft-mss-string run-taslp23-finetune-mss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Fine-tuning EfficientNet with MSS loss (TASLP23 string synthesis)..."
+	source .venv/bin/activate && python taslp23/07_train_effnet_finetune_mss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23raw-string run-taslp23-pnploss-raw-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Training EfficientNet with PNP-loss raw parameters (TASLP23 string synthesis)..."
+	source .venv/bin/activate && python taslp23/08_train_effnet_pnploss_raw.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23ft2-pnpl-string run-taslp23-finetune2-pnploss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Alternative fine-tuning EfficientNet with PNP-loss (TASLP23 string synthesis)..."
+	source .venv/bin/activate && python taslp23/09_train_effnet_finetune_pnploss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+rt23ft2-mss-string run-taslp23-finetune2-mss-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Alternative fine-tuning EfficientNet with MSS loss (TASLP23 string synthesis)..."
+	source .venv/bin/activate && python taslp23/10_train_effnet_finetune_mss.py $(SAVE_DIR)/taslp23 $(INIT_ID) 1 1 adam string
+
+# ==================== COMPREHENSIVE PIPELINES ====================
+
+# Complete TASLP23 training pipeline (legacy default)
 rt23all run-taslp23-all: rt23pl rt23sl rt23pnpl rt23ft-pnpl rt23ft-mss
+
+# Complete FTM training pipeline
+rt23all-ftm run-taslp23-all-ftm: rt23pl-ftm rt23sl-ftm rt23pnpl-ftm rt23ft-pnpl rt23ft-mss
+	@echo "✓ Complete TASLP23 FTM drum synthesis training pipeline finished"
+
+# Complete String training pipeline
+rt23all-string run-taslp23-all-string: rt23pl-string rt23sl-string rt23pnpl-string rt23ft-pnpl-string rt23ft-mss-string
+	@echo "✓ Complete TASLP23 string synthesis training pipeline finished"
+
+# Multi-synthesizer comprehensive pipeline
+rt23all-multi run-taslp23-all-multi: rt23all-ftm rt23all-string
+	@echo "✓ Complete TASLP23 multi-synthesizer training pipeline finished"
 
 rt23o run-taslp23-observation:
 	@echo "Starting TensorBoard for TASLP23 training..."
@@ -359,7 +494,9 @@ rt23o run-taslp23-observation:
 	@echo "TensorBoard running in background at http://localhost:6006"
 	@echo "To stop TensorBoard later: pkill -f tensorboard"
 
-# Compute LMA step matrices (analysis)
+# ==================== LMA MATRIX COMPUTATION ====================
+
+# Compute LMA step matrices (analysis) - legacy default
 Mt23 M-taslp23: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23..."
 	source .venv/bin/activate && python taslp23/12_compute_lmastep.py $(SAVE_DIR)/taslp23 0 1000
@@ -370,6 +507,24 @@ Mt23f M-taslp23-fast: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 
 Mt23fp M-taslp23-fast-precision: $(SAVE_DIR)/taslp23/x/taslp23_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23 (CPU float64 for precision)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1
+
+# FTM LMA matrix computation (explicit)
+Mt23f-ftm M-taslp23-fast-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 FTM drums (MPS accelerated, batch processing)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 100000 0
+
+Mt23fp-ftm M-taslp23-fast-precision-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 FTM drums (CPU float64 for precision)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1
+
+# String LMA matrix computation
+Mt23f-string M-taslp23-fast-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 string synthesis (MPS accelerated, 6 parameters)..."
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 100000 0
+
+Mt23fp-string M-taslp23-fast-precision-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
+	@echo "Computing LMA step matrices for TASLP23 string synthesis (CPU float64 for precision, 6 parameters)..."
 	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1
 
 # Merge H5 files (analysis)
