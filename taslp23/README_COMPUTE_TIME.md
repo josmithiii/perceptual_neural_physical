@@ -272,3 +272,5 @@ configuration used in most experiments.
 This 12-octave coverage spans the full musical range from sub-bass to
 high harmonics, making it suitable for comprehensive perceptual audio
 analysis in the PNP framework.
+
+#### [JFTS Mermaid Diagram](../JTFS_DIAGRAM.md) (Thanks Claude)
