@@ -91,6 +91,10 @@ def save_results_batch(results_batch, save_dir, dir_name, synth_type, id_start):
 
         with h5py.File(h5_path, "a") as h5_file:
             for sample_id, M_cpu, sigma_cpu, J_cpu in fold_results:
+                # Check if already exists before writing (eliminates race condition)
+                if str(sample_id) in h5_file['sigma']:
+                    print(f"Sample {sample_id} already computed, skipping...")
+                    continue
                 h5_file['M'][str(sample_id)] = M_cpu.numpy()
                 h5_file['sigma'][str(sample_id)] = sigma_cpu.numpy()
                 if J_cpu is not None:
