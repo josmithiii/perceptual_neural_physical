@@ -14,6 +14,7 @@ import numpy as np
 import os
 import pandas as pd
 import pnp_synth
+from pnp_synth.synth_registry import validate_synth_type
 import sklearn
 import sys
 import time
@@ -27,11 +28,12 @@ save_dir = sys.argv[1]
 id_start = int(sys.argv[2])
 id_end = int(sys.argv[3])
 logscale = int(sys.argv[4])
-synth_type_int = int(sys.argv[5])
-synth_type = "ftm" if synth_type_int == 0 else "amchirp"
-minmax = int(sys.argv[6])
+synth_type = sys.argv[5] if len(sys.argv) > 5 else "ftm"  # Pass synth_type directly as string
+validate_synth_type(synth_type)
+minmax = int(sys.argv[6]) if len(sys.argv) > 6 else 1
 
 print("Command-line arguments:\n" + "\n".join(sys.argv[1:]) + "\n")
+print(f"Using synthesizer type: {synth_type}\n")
 
 for module in [kymatio, np, pd, sklearn, torch]:
     print("{} version: {:s}".format(module.__name__, module.__version__))

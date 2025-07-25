@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import pnp_synth
 from pnp_synth.physical import ftm
+from pnp_synth.synth_registry import get_synth_config, get_synthesis_function, validate_synth_type
 import random
 import sys
 import soundfile as sf
@@ -22,7 +23,10 @@ start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
 print(__doc__ + "\n")
 save_dir = sys.argv[1]
+synth_type = sys.argv[2] if len(sys.argv) > 2 else "ftm"  # Default to FTM for backward compatibility
+validate_synth_type(synth_type)
 print("Command-line arguments:\n" + "\n".join(sys.argv[1:]) + "\n")
+print(f"Using synthesizer type: {synth_type}\n")
 
 for module in [h5py, np, pd]:
     print("{} version: {:s}".format(module.__name__, module.__version__))
@@ -34,13 +38,17 @@ audio_dir = os.path.join(save_dir, "x")
 os.makedirs(audio_dir, exist_ok=True)
 logscale = True #the csv files are storing logscaled parameters
 
-synth_type = "ftm"  # Default synthesis type for TASLP23
-THETA_COLUMNS = ["omega", "tau", "p", "D", "alpha"]  # FTM parameters
+# Get synthesizer configuration
+config = get_synth_config(synth_type)
+THETA_COLUMNS = config["theta_columns"]
+synth_fn, constants = get_synthesis_function(synth_type)
+print(f"Parameter columns: {THETA_COLUMNS}")
+print(f"Synthesis function: {config['synthesis_fn']}\n")
 
 for fold in taslp23.FOLDS:
     # Define path to HDF5 file
     fold_df = taslp23.load_fold(synth_type, fold)
-    h5_name = "taslp23_{}_audio.h5".format(fold)
+    h5_name = "{}_{}_audio.h5".format(synth_type, fold)
     h5_path = os.path.join(audio_dir, h5_name)
 
     # Create HDF5 file
@@ -61,7 +69,12 @@ for fold in taslp23.FOLDS:
         # Physical audio synthesis (g). theta -> x
         theta = np.array([row[column] for column in THETA_COLUMNS])
         theta_tensor = torch.tensor(theta, dtype=torch.float32)
-        x = ftm.rectangular_drum(theta_tensor, logscale, **ftm.constants)
+
+        # Dynamic synthesis call based on synth_type
+        if synth_type == "string":
+            x = synth_fn(theta_tensor, 0.1, **constants)  # pos_ratio=0.1 for string
+        else:
+            x = synth_fn(theta_tensor, logscale, **constants)
         key = str(row["ID"])
 
         # Append to HDF5 file

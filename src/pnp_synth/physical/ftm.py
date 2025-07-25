@@ -217,7 +217,7 @@ def percep2physics(w1, tau1, p, D, l, lm):
 
 # theta = {w1,tau1, p, D, lm, ell}
 def linearstring_percep(theta, logscale, **constants_string):
-    device = utils.get_device()
+    device = theta.device
     # convert omega, tau, p, D into S, c, d1, d3
     w11 = 10 ** theta[0] if logscale else theta[0]
     p = 10 ** theta[2] if logscale else theta[2]
@@ -226,7 +226,7 @@ def linearstring_percep(theta, logscale, **constants_string):
     tau11 = theta[1]
     lm = theta[4]
     ell = theta[5]
-    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
+    pi = torch.tensor(np.pi, dtype=theta.dtype).to(device)
     dur = constants_string['dur']
 
     d1, d3, S4, c2 = percep2physics(w11, tau11, p, D, ell, lm)
@@ -234,7 +234,7 @@ def linearstring_percep(theta, logscale, **constants_string):
     EI = S4 * lm
     Ts0 = c2 * lm
 
-    mu = torch.arange(1, constants_string["m"] + 1).to(device)
+    mu = torch.arange(1, constants_string["m"] + 1, dtype=theta.dtype).to(device)
     n = (mu * pi / ell) ** 2
     n2 = n ** 2
     K = torch.sin(mu * pi * constants_string["x"])
@@ -253,7 +253,7 @@ def linearstring_percep(theta, logscale, **constants_string):
         / omega #(mode)
     )
 
-    time_steps = torch.linspace(0, dur, dur).to(device) / constants_string['sr'] #(T,)
+    time_steps = torch.linspace(0, dur, dur, dtype=theta.dtype).to(device) / constants_string['sr'] #(T,)
 
     y = torch.exp(-alpha[:,None] * time_steps[ None, :]) * torch.sin(
         omega[:,None] * time_steps[None,:]
@@ -276,7 +276,7 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
     unlike the convention in rabenstein's paper. d3 is always positive, so alpha=(d1+d3*n)/(2*lm)
     beta = EI n2 + Ts0 n (positive sign here)
     """
-    device = utils.get_device()
+    device = theta.device
     # convert omega, tau, p, D into S, c, d1, d3
     EI = theta[0]
     Ts0 = 10 ** theta[1]
@@ -284,11 +284,11 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
     d3 = theta[3]
     lm = 10 ** theta[4]
     ell = 10 ** theta[5]
-    pi = torch.tensor(np.pi, dtype=torch.float32).to(device)
+    pi = torch.tensor(np.pi, dtype=theta.dtype).to(device)
     dur = constants_string['dur']
 
 
-    mu = torch.arange(1, constants_string["m"] + 1).to(device)
+    mu = torch.arange(1, constants_string["m"] + 1, dtype=theta.dtype).to(device)
     n = (mu * pi / ell) ** 2
     n2 = n ** 2
     K = torch.sin(mu * pi * pos_ratio)
@@ -311,7 +311,7 @@ def linearstring_physics(theta, pos_ratio, **constants_string):
             / omega #(mode)
         )
 
-        time_steps = torch.linspace(0, dur, dur).to(device) / constants_string['sr'] #(T,)
+        time_steps = torch.linspace(0, dur, dur, dtype=theta.dtype).to(device) / constants_string['sr'] #(T,)
 
         y = torch.exp(-alpha[:,None] * time_steps[ None, :]) * torch.sin(
             omega[:,None] * time_steps[None,:]
