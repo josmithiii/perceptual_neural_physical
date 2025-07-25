@@ -655,3 +655,7 @@ Due to the computational expense, the research community often uses:
 - **Cached intermediate results**
 
 The **500× computational overhead** for Jacobian computation makes pre-computation essential for this pipeline. By computing JTFS features and gradients offline (`02_compute_pnp_jacobian.py`), the project enables practical neural network training on large datasets (100,000+ samples) while maintaining the rich perceptual information that JTFS provides. The resulting pre-computed features and Riemannian metrics enable efficient training of EfficientNet models for inverse synthesis tasks.
+
+### References
+
+- [Kymatio: Wavelet scattering in Python](https://www.kymat.io)
