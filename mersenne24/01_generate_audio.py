@@ -15,6 +15,7 @@ import random
 import sys
 import soundfile as sf
 import time
+import torch
 
 # Print header
 start_time = int(time.time())
@@ -55,7 +56,7 @@ for fold in mersenne24.FOLDS:
         #i, row = irow
 
         # Physical audio synthesis (g). theta -> x
-        theta = np.array([row[column] for column in mersenne24.THETA_COLUMNS])
+        theta = torch.tensor([row[column] for column in mersenne24.THETA_COLUMNS], dtype=torch.float32)
         x = ftm.linearstring_percep(theta, logscale, **ftm.constants_string)
         key = str(row["ID"])
 
@@ -63,7 +64,7 @@ for fold in mersenne24.FOLDS:
         with h5py.File(h5_path, "a") as h5_file:
             # Store shape annd waveform into HDF5 container.
             h5_file["x"][key] = x.cpu()
-            h5_file["theta"][key] = theta
+            h5_file["theta"][key] = theta.numpy()
 
     # Print
     now = str(datetime.datetime.now())

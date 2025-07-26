@@ -85,7 +85,18 @@ lr = 1e-3
 finetune = False
 
 if __name__ == "__main__":
-    print("Current device: ", torch.cuda.get_device_name(0))
+    # Device detection: CUDA -> MPS -> CPU
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        device_name = torch.cuda.get_device_name(0)
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        device_name = "Apple Silicon MPS"
+    else:
+        device = torch.device("cpu")
+        device_name = "CPU"
+
+    print("Current device: ", device_name)
     torch.multiprocessing.set_start_method('spawn')
     model_save_path = os.path.join(
         model_dir,
@@ -105,7 +116,7 @@ if __name__ == "__main__":
     os.makedirs(model_save_path, exist_ok=True)
     pred_path = os.path.join(model_save_path, "test_predictions.npy")
 
-    if minmax: 
+    if minmax:
         nus, scaler = mersenne24.scale_theta(logscale_theta, mode="phys")
     else:
         scaler = None
@@ -127,7 +138,7 @@ if __name__ == "__main__":
         Q=Q,
         sr=sr,
         scaler=scaler,
-        num_workers=0, 
+        num_workers=0,
     )
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
@@ -153,9 +164,19 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # initialize trainer, declare training parameters, possiibly in neural/cnn.py
+    if device.type == "cuda":
+        accelerator = "gpu"
+        devices = -1  # Use all available GPUs
+    elif device.type == "mps":
+        accelerator = "mps"
+        devices = 1
+    else:
+        accelerator = "cpu"
+        devices = 1
+
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=-1,
+        accelerator=accelerator,
+        devices=devices,
         max_epochs=epoch_max,
         max_steps=max_steps,
         limit_train_batches=steps_per_epoch,  # if integer than it's #steps per epoch, if float then it's percentage
@@ -174,15 +195,15 @@ if __name__ == "__main__":
         ckpt_path = os.path.join(model_save_path, ckpt_path)
         print("Load Pretrained model")
         model = model.load_from_checkpoint(
-            ckpt_path, 
+            ckpt_path,
             in_channels=1, outdim=outdim, loss=loss_type, scaler=scaler,
             var=bn_var, save_path=pred_path, steps_per_epoch=steps_per_epoch, lr=lr, LMA=LMA, minmax=minmax,logtheta=logscale_theta, opt=opt)
-    
+
     model.save_path = os.path.join(model_save_path, "test_predictions_synth.npy")
     test_loss = trainer.test(model, dataset, verbose=False)
     print("Model saved at: {}".format(model_save_path))
     print("Average test loss: {}".format(test_loss))
-    print("\n") 
+    print("\n")
 
     dataset_noise = cnn.DrumDataModule(
         batch_size=batch_size,
@@ -205,7 +226,7 @@ if __name__ == "__main__":
     test_loss = trainer.test(model, dataset_noise, verbose=False)
     print("Model saved at: {}".format(model_save_path))
     print("Average test loss: {}".format(test_loss))
-    print("\n") 
+    print("\n")
 
     # Print elapsed time.
     print(str(datetime.datetime.now()) + " Success.")
