@@ -116,7 +116,7 @@ if __name__ == "__main__":
     #print("sanity check", full_df)
 
     # initialize dataset
-    dataset = cnn.DrumDataModule(
+    dataset = cnn.SynthDataModule(
         batch_size=batch_size,
         data_dir=data_dir,  # path to hdf5 files
         cqt_dir=cqt_dir,
@@ -132,9 +132,14 @@ if __name__ == "__main__":
         num_workers=0
     )
 
-    # Add required attributes since DrumDataModule always uses FTM
+    # Add required attributes since SynthDataModule needs synth-specific configuration
     dataset.synth_type = synth_type
-    dataset.h5name = "taslp23"
+    if synth_type == "string":
+        dataset.h5name = "string"
+        dataset.audio_h5name = "string"
+    else:
+        dataset.h5name = "taslp23"
+        dataset.audio_h5name = "taslp23"
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function

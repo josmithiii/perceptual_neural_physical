@@ -648,7 +648,7 @@ class DrumData(Dataset):
         return Sy
 
 
-class DrumDataModule(pl.LightningDataModule):
+class SynthDataModule(pl.LightningDataModule):
     def __init__(self,
                  data_dir,
                  cqt_dir,
@@ -830,3 +830,7 @@ class DrumDataModule(pl.LightningDataModule):
                           drop_last=True,
                           collate_fn=self.collate_batch,
                           num_workers=self.num_workers)
+
+
+# Backward compatibility alias
+DrumDataModule = SynthDataModule
