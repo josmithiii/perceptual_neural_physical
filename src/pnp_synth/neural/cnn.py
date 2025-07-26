@@ -665,7 +665,8 @@ class SynthDataModule(pl.LightningDataModule):
                  num_workers,
                  noise_dir=None,
                  noisemodel="pratm",
-                 noise_mode="matched"):
+                 noise_mode="matched",
+                 synth_type=None):
         super().__init__()
         self.data_dir = data_dir
         self.num_workers = num_workers
@@ -681,8 +682,26 @@ class SynthDataModule(pl.LightningDataModule):
         self.cqt_dir = cqt_dir
         self.scaler = scaler
         self.noisemodel = noisemodel
-        if "taslp23" in weight_dir:
-            print("Setting synth_type to ftm for taslp23")
+
+        # Use explicit synth_type if provided, otherwise auto-detect from weight_dir
+        if synth_type is not None:
+            print(f"Using explicit synth_type: {synth_type}")
+            self.synth_type = synth_type
+            if synth_type == "string" and "taslp23" in weight_dir:
+                self.h5name = "string"
+                self.audio_h5name = "string"
+            elif synth_type == "ftm" and "taslp23" in weight_dir:
+                self.h5name = "ftm"
+                self.audio_h5name = "taslp23"
+            elif synth_type == "string" and "mersenne" in weight_dir:
+                self.h5name = "mersenne24"
+                self.audio_h5name = "mersenne24"
+            else:
+                # Default naming based on synth_type
+                self.h5name = synth_type
+                self.audio_h5name = synth_type
+        elif "taslp23" in weight_dir:
+            print("Setting synth_type to ftm for taslp23 (auto-detected)")
             self.synth_type = "ftm"
             self.h5name = "ftm"  # For M matrices
             self.audio_h5name = "taslp23"  # For audio files

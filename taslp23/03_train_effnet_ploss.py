@@ -62,7 +62,7 @@ elif synth_type == "amchirp":
     outdim = 3
     sr = 2 ** 13
 elif synth_type == "string":
-    J = 13
+    J = 10  # Reduced from 13 to handle shorter audio segments
     outdim = 6
     sr = 22050
 bn_var = 0.5
@@ -129,17 +129,11 @@ if __name__ == "__main__":
         Q=Q,
         sr=sr,
         scaler=scaler,
-        num_workers=0
+        num_workers=0,
+        synth_type=synth_type
     )
 
-    # Add required attributes since SynthDataModule needs synth-specific configuration
-    dataset.synth_type = synth_type
-    if synth_type == "string":
-        dataset.h5name = "string"
-        dataset.audio_h5name = "string"
-    else:
-        dataset.h5name = "taslp23"
-        dataset.audio_h5name = "taslp23"
+    # SynthDataModule now handles synth_type configuration automatically via constructor
 
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function
