@@ -127,9 +127,9 @@ def x_from_theta(theta, logscale, synth_type="ftm"):
     """Dynamic synthesizer based on synth_type."""
     synth_fn, constants = get_synthesis_function(synth_type)
 
-    # Handle string synthesis special case (needs pos_ratio instead of logscale)
+    # Handle string synthesis special case (needs pos_ratio and logscale)
     if synth_type == "string":
-        x = synth_fn(theta, 0.1, **constants)  # pos_ratio=0.1 for string
+        x = synth_fn(theta, 0.1, logscale=logscale, **constants)  # pos_ratio=0.1 for string
     else:
         x = synth_fn(theta, logscale, **constants)
     return x

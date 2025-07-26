@@ -123,6 +123,7 @@ def process_sample_batch(batch_data, dS_over_dnu, device, precision, expected_sh
 
             try:
                 # Compute Jacobian: d(S) / d(nu)
+                # This may fail if synthesis returns invalid output
                 J = dS_over_dnu(nu_tensor).detach()
 
                 # Compute M = J.T @ J (Riemannian metric)
@@ -148,6 +149,13 @@ def process_sample_batch(batch_data, dS_over_dnu, device, precision, expected_sh
                     continue
                 else:
                     print(f"Runtime error for sample {sample_id}: {e}")
+                    continue
+            except AttributeError as e:
+                if "str" in str(e) and "attribute" in str(e):
+                    print(f"Synthesis failure for sample {sample_id} (parameters out of range): {e}")
+                    continue
+                else:
+                    print(f"Attribute error for sample {sample_id}: {e}")
                     continue
             except Exception as e:
                 print(f"Unexpected error for sample {sample_id}: {e}")
@@ -188,6 +196,7 @@ def main():
     dir_name = "M_log"
     config = get_synth_config(synth_type)
     THETA_COLUMNS = config["theta_columns"]
+    LOG_SCALE_COLUMNS = config["log_scale_columns"]
     EXPECTED_SHAPE = (config["theta_dim"], config["theta_dim"])
 
     # Setup device and precision
@@ -214,7 +223,7 @@ def main():
         full_df = taslp23.load_fold(synth_type)
         nus = []
         for column in THETA_COLUMNS:
-            if not logscale and column in ["omega", "p", "D"]:
+            if not logscale and column in LOG_SCALE_COLUMNS:
                 nus.append(10 ** full_df[column].values)
             else:
                 nus.append(full_df[column].values)
@@ -224,7 +233,7 @@ def main():
         full_df = taslp23.load_fold(synth_type)
         nus = []
         for column in THETA_COLUMNS:
-            if not logscale and column in ["omega", "p", "D"]:
+            if not logscale and column in LOG_SCALE_COLUMNS:
                 nus.append(10 ** full_df[column].values)
             else:
                 nus.append(full_df[column].values)
