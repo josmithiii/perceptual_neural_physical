@@ -494,13 +494,17 @@ class DrumData(Dataset):
         id = self.ids[idx]
         M = None
         weight = torch.tensor(1)
-        #load JTJ
-        M, sigma, JdagJ = self.M_from_id(id)
-        try:
-            metric_weight = torch.sqrt((sorted(sigma)[-1]*sorted(sigma)[-2]))
-        except:
-            metric_weight = None
+        sigma = None
+        JdagJ = None
+        metric_weight = None
+
+        # Only load PNP weights if needed
         if self.weight_type != "None" and self.weight_type == "pnp":
+            M, sigma, JdagJ = self.M_from_id(id)
+            try:
+                metric_weight = torch.sqrt((sorted(sigma)[-1]*sorted(sigma)[-2]))
+            except:
+                metric_weight = None
             weight = metric_weight
         if self.feature == "cqt":
             try:
