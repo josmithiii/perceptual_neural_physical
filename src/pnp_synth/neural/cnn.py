@@ -174,16 +174,21 @@ class EffNet(pl.LightningModule):
         Sy = batch['feature'].to(self.current_device)
         y = batch['y'].to(self.current_device).float()
         weight = batch['weight'].to(self.current_device)
-        try:
-            M = batch['M'].to(self.current_device).float()
-            M_mean = batch['M_mean'].to(self.current_device)
-            self.LMA_lambda0 = batch['lambda0'].to(self.current_device)
-            self.LMA_threshold = self.LMA_lambda0 # set threshold to be the initialized lambda
-        except:
-            print(f"ERROR: PNP matrices (M, M_mean, lambda0) missing from batch. Run 12_compute_lmastep_fast.py first to generate M matrices.")
-            sys.exit(1)
+        # Only load PNP matrices if needed for the loss type
+        if self.loss_type in ["weighted_p", "LMA"]:
+            try:
+                M = batch['M'].to(self.current_device).float()
+                M_mean = batch['M_mean'].to(self.current_device)
+                self.LMA_lambda0 = batch['lambda0'].to(self.current_device)
+                self.LMA_threshold = self.LMA_lambda0 # set threshold to be the initialized lambda
+            except:
+                print(f"ERROR: PNP matrices (M, M_mean, lambda0) missing from batch for {self.loss_type} loss. Run 12_compute_lmastep_fast.py first to generate M matrices.")
+                sys.exit(1)
+        else:
+            # For ploss and other losses that don't need PNP matrices
+            M, M_mean, self.LMA_lambda0 = None, None, None
 
-        if self.LMA_lambda is None and self.LMA_mode == "adaptive":
+        if self.LMA_lambda is None and self.LMA_mode == "adaptive" and self.LMA_lambda0 is not None:
             self.LMA_lambda = self.LMA_lambda0 #initialize lambda to be intiialized lambda
         try:
             metric_weight = batch['metric_weight'].to(self.current_device)
