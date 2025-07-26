@@ -1,5 +1,5 @@
 """
-This script computes 100k drum sounds by solving a 4th-order partial
+This script computes 100k string sounds by solving a 4th-order partial
 differential equation with the pnp_synth.ftm submodule.
 FTM stands for Functional Transformation Method.
 """

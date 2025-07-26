@@ -31,10 +31,12 @@ h help:
 	@echo "  ai25           - Generate ICASSP25 audio data (full dataset)"
 	@echo "  ai25test       - Generate ICASSP25 test audio (100 samples per fold)"
 	@echo "  Mi25           - Compute ICASSP25 PNP Jacobian matrices"
-	@echo "  asm24          - Generate MERSENNE24 string perceptual audio data"
-	@echo "  asm24phys      - Generate MERSENNE24 string physics-based audio data"
+	@echo "  asm24pcp       - Generate MERSENNE24 string perceptual audio data"
+	@echo "  asm24phy       - Generate MERSENNE24 string physics-based audio data"
 	@echo "  asm24all       - Generate all MERSENNE24 string audio data"
-	@echo "  csm24          - Clean MERSENNE24 string synthesis audio data"
+	@echo "  csm24pcp       - Clean MERSENNE24 string synthesis perceptual audio data"
+	@echo "  csm24phy       - Clean MERSENNE24 string synthesis physical audio data"
+	@echo "  csm24all       - Clean MERSENNE24 string synthesis audio data"
 	@echo "  at23           - Generate TASLP23 audio data (default FTM)"
 	@echo "  at23-ftm       - Generate TASLP23 FTM drum audio data (explicit)"
 	@echo "  at23-string    - Generate TASLP23 string synthesis audio data (6 params)"
@@ -200,14 +202,26 @@ $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5:
 	source .venv/bin/activate && python mersenne24/01_generate_audio_phys.py $(SAVE_DIR)/mersenne24
 
 # Primary string data generation targets
-asm24 audio-strings-mersenne24: $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
+asm24pcp audio-strings-mersenne24-perceptual: $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
 	@echo "✓ MERSENNE24 string perceptual audio data generated (6 params: w1, tau, p, D, lm, ell)"
 
-asm24phys audio-strings-mersenne24-physics: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
+asm24phy audio-strings-mersenne24-physics: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
 	@echo "✓ MERSENNE24 string physics-based audio data generated (6 params: EI, Ts0, d1, d3, lm, ell)"
 
-asm24all audio-strings-mersenne24-all: asm24 asm24phys
+asm24all audio-strings-mersenne24-all: asm24pcp asm24phy
 	@echo "✓ All MERSENNE24 string synthesis audio data generated"
+
+casm24pcp clean-audio-strings-mersenne24-perceptual:
+	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
+	@echo "✓ MERSENNE24 perceptual audio data cleaned"
+
+casm24phy clean-audio-strings-mersenne24-physical:
+	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
+	@echo "✓ MERSENNE24 physical audio data cleaned"
+
+casm24all clean-audio-strings-mersenne24-all:
+	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/
+	@echo "✓ All MERSENNE24 audio data cleaned"
 
 # Training targets - Baseline (using string synthesis)
 rm24pl run-mersenne24-ploss: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
