@@ -521,11 +521,11 @@ Mt23fp-ftm M-taslp23-fast-precision-ftm: $(SAVE_DIR)/taslp23/x/ftm_train_audio.h
 # String LMA matrix computation
 Mt23f-string M-taslp23-fast-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23 string synthesis (MPS accelerated, 6 parameters)..."
-	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 100000 0
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 0 string
 
 Mt23fp-string M-taslp23-fast-precision-string: $(SAVE_DIR)/taslp23/x/string_train_audio.h5
 	@echo "Computing LMA step matrices for TASLP23 string synthesis (CPU float64 for precision, 6 parameters)..."
-	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1
+	source .venv/bin/activate && python taslp23/12_compute_lmastep_fast.py $(SAVE_DIR)/taslp23 0 1000 1 string
 
 # Merge H5 files (analysis)
 mht23 merge-h5-taslp23:

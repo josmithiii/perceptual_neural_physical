@@ -61,6 +61,10 @@ elif synth_type == "amchirp":
     J = 6
     outdim = 3
     sr = 2 ** 13
+elif synth_type == "string":
+    J = 13
+    outdim = 6
+    sr = 22050
 bn_var = 0.5
 cnn_type = "efficientnet"  # efficientnet / cnn.wav2shape
 loss_type = "ploss"  # spec / weighted_p / ploss

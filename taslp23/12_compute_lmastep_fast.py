@@ -26,6 +26,7 @@ except ImportError:
 import kymatio
 import taslp23
 import pnp_synth
+from pnp_synth.synth_registry import get_synth_config, validate_synth_type
 
 
 def setup_device_and_precision(force_cpu=False):
@@ -103,7 +104,7 @@ def save_results_batch(results_batch, save_dir, dir_name, synth_type, id_start):
                     h5_file['JdagJ'][str(sample_id)] = JdagJ.numpy()
 
 
-def process_sample_batch(batch_data, dS_over_dnu, device, precision):
+def process_sample_batch(batch_data, dS_over_dnu, device, precision, expected_shape):
     """Process a batch of samples on GPU/MPS device."""
     batch_indices, nus_batch, fold_batch = batch_data
     results = []
@@ -126,7 +127,8 @@ def process_sample_batch(batch_data, dS_over_dnu, device, precision):
 
                 # Compute M = J.T @ J (Riemannian metric)
                 M = torch.matmul(J.T, J)
-                assert M.shape[0] == 5 and M.shape[1] == 5, f"Expected M shape (5,5), got {M.shape}"
+                expected_dim = expected_shape[0]
+                assert M.shape[0] == expected_dim and M.shape[1] == expected_dim, f"Expected M shape {expected_shape}, got {M.shape}"
 
                 # Compute eigenvalues
                 sigma = torch.linalg.eigvals(M)
@@ -169,8 +171,12 @@ def main():
     id_start = int(sys.argv[2]) if len(sys.argv) > 2 else 0
     id_end = int(sys.argv[3]) if len(sys.argv) > 3 else 1000
     force_cpu = int(sys.argv[4]) if len(sys.argv) > 4 else 0  # Optional: force CPU for float64
+    synth_type = sys.argv[5] if len(sys.argv) > 5 else "ftm"  # Default to FTM for backward compatibility
 
+    # Validate synthesizer type
+    validate_synth_type(synth_type)
     print("Command-line arguments:\n" + "\n".join(sys.argv[1:]) + "\n")
+    print(f"Using synthesizer type: {synth_type}\n")
 
     # Print version information
     for module in [kymatio, np, pd, sklearn, torch]:
@@ -178,10 +184,11 @@ def main():
     print("")
     sys.stdout.flush()
 
-    # Configuration
+    # Configuration from synthesizer registry
     dir_name = "M_log"
-    synth_type = "ftm"
-    THETA_COLUMNS = ["omega", "tau", "p", "D", "alpha"]
+    config = get_synth_config(synth_type)
+    THETA_COLUMNS = config["theta_columns"]
+    EXPECTED_SHAPE = (config["theta_dim"], config["theta_dim"])
 
     # Setup device and precision
     device, precision = setup_device_and_precision(force_cpu)
@@ -275,7 +282,7 @@ def main():
             batch_data = (batch_indices, nus_batch, batch_folds)
 
             # Process batch on GPU/MPS
-            results_batch = process_sample_batch(batch_data, dS_over_dnu, device, precision)
+            results_batch = process_sample_batch(batch_data, dS_over_dnu, device, precision, EXPECTED_SHAPE)
 
             if results_batch:
                 # Submit I/O operation to thread pool
