@@ -46,6 +46,9 @@ sys.stdout.flush()
 data_dir = os.path.join(save_dir, "x")
 weight_dir = os.path.join(save_dir, "M_log")
 noise_dir = os.path.join(save_dir, "x", "mersenne24_realaudio_nonval.h5")
+# Check if noise file exists, if not set to None to skip noise testing
+if not os.path.exists(noise_dir):
+    noise_dir = None
 model_dir = os.path.join(save_dir, "f_W")
 cqt_dir = data_dir
 
@@ -205,27 +208,31 @@ if __name__ == "__main__":
     print("Average test loss: {}".format(test_loss))
     print("\n")
 
-    dataset_noise = cnn.DrumDataModule(
-        batch_size=batch_size,
-        data_dir=data_dir,  # path to hdf5 files
-        cqt_dir=cqt_dir,
-        df=full_df,
-        weight_dir=weight_dir,  # path to gradient folders
-        weight_type=weight_type,  # novol, pnp
-        feature="cqt",
-        logscale=logscale_theta,
-        J=J,
-        Q=Q,
-        sr=sr,
-        scaler=scaler,
-        num_workers=0,
-        noise_dir = noise_dir,
-        noise_mode = "random"
-    )
-    model.save_path = os.path.join(model_save_path, "test_predictions_noise.npy")
-    test_loss = trainer.test(model, dataset_noise, verbose=False)
-    print("Model saved at: {}".format(model_save_path))
-    print("Average test loss: {}".format(test_loss))
+    # Only run noise testing if noise data is available
+    if noise_dir is not None:
+        dataset_noise = cnn.DrumDataModule(
+            batch_size=batch_size,
+            data_dir=data_dir,  # path to hdf5 files
+            cqt_dir=cqt_dir,
+            df=full_df,
+            weight_dir=weight_dir,  # path to gradient folders
+            weight_type=weight_type,  # novol, pnp
+            feature="cqt",
+            logscale=logscale_theta,
+            J=J,
+            Q=Q,
+            sr=sr,
+            scaler=scaler,
+            num_workers=0,
+            noise_dir = noise_dir,
+            noise_mode = "random"
+        )
+        model.save_path = os.path.join(model_save_path, "test_predictions_noise.npy")
+        test_loss = trainer.test(model, dataset_noise, verbose=False)
+        print("Model saved at: {}".format(model_save_path))
+        print("Average test loss: {}".format(test_loss))
+    else:
+        print("Noise data file not found, skipping noise robustness testing")
     print("\n")
 
     # Print elapsed time.

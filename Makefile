@@ -201,7 +201,7 @@ $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5:
 	@mkdir -p $(SAVE_DIR)/mersenne24
 	source .venv/bin/activate && python mersenne24/01_generate_audio_phys.py $(SAVE_DIR)/mersenne24
 
-# Primary string data generation targets
+# Mersenne24 String data generation targets
 asm24pcp audio-strings-mersenne24-perceptual: $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
 	@echo "✓ MERSENNE24 string perceptual audio data generated (6 params: w1, tau, p, D, lm, ell)"
 
@@ -211,6 +211,7 @@ asm24phy audio-strings-mersenne24-physics: $(SAVE_DIR)/mersenne24/x/mersenne24_p
 asm24all audio-strings-mersenne24-all: asm24pcp asm24phy
 	@echo "✓ All MERSENNE24 string synthesis audio data generated"
 
+# Mersenne24 String data cleaning targets (sufficient to trigger a remake)
 casm24pcp clean-audio-strings-mersenne24-perceptual:
 	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/mersenne24_train_audio.h5
 	@echo "✓ MERSENNE24 perceptual audio data cleaned"
@@ -223,7 +224,7 @@ casm24all clean-audio-strings-mersenne24-all:
 	-/bin/rm -rf $(SAVE_DIR)/mersenne24/x/
 	@echo "✓ All MERSENNE24 audio data cleaned"
 
-# Training targets - Baseline (using string synthesis)
+# Mersenne24 Training targets - Baseline (using physical string synthesis)
 rm24pl run-mersenne24-ploss: $(SAVE_DIR)/mersenne24/x/mersenne24_phys_train_audio.h5
 	@echo "Training EfficientNet with P-loss (MERSENNE24 string synthesis)..."
 	source .venv/bin/activate && python mersenne24/03_train_effnet_ploss.py $(SAVE_DIR)/mersenne24 $(INIT_ID) 1 1 adam string None
