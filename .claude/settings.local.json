@@ -23,7 +23,9 @@
       "Bash(cp:*)",
       "Bash(TMP_WEIGHT_DIR=/tmp make -n rt23pnpl)",
       "Bash(TMP_WEIGHT_DIR=/tmp make rt23pnpl)",
-      "Bash(jobs)"
+      "Bash(jobs)",
+      "Bash(../.venv/bin/python:*)",
+      "Read(//Users/jos/jos2p8/etc/josimp/links/**)"
     ],
     "deny": []
   }

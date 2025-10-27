@@ -15,6 +15,7 @@ import random
 import sys
 import soundfile as sf
 import time
+import torch
 
 # Print header
 start_time = int(time.time())
@@ -56,6 +57,7 @@ for fold in icassp23.FOLDS:
 
         # Physical audio synthesis (g). theta -> x
         theta = np.array([row[column] for column in icassp23.THETA_COLUMNS])
+        theta = torch.tensor(theta, dtype=torch.float32)
         x = ftm.rectangular_drum(theta, logscale, **ftm.constants)
         key = str(row["ID"])
 
