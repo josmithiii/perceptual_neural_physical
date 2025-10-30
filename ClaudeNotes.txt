@@ -1,0 +1,24 @@
+This archival file logs things I want to remember from Claude sessions
+
+10/30/25
+
+⏺ Perfect! I've created ./print_best_checkpoint.py that produces the formatted output you requested.
+
+  Usage:
+  # Use default model (ICASSP25 P-loss) and auto-detect best evaluated epoch
+  ./print_best_checkpoint.py
+
+  # Specify model directory
+  ./print_best_checkpoint.py ./outputs/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size32_lr-0.001_init-test
+
+  # Specify both model directory and epoch
+  ./print_best_checkpoint.py ./outputs/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size32_lr-0.001_init-test 07
+
+  Features:
+  - Auto-detects available prediction files and uses the most recent one
+  - Computes MAE in three spaces: normalized [-1,1], log-scaled physical, and relative errors
+  - Clean, formatted output with proper alignment
+  - Type hints and documentation
+  - Error handling for missing files
+
+  The script is executable and ready to use!
