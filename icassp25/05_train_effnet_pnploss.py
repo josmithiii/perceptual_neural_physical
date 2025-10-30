@@ -25,7 +25,7 @@ from pnp_synth import utils
 start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
 print(__doc__ + "\n")
-save_dir = sys.argv[1]  # /home/han/data/
+save_dir = sys.argv[1]
 init_id = sys.argv[2]
 minmax = int(sys.argv[3])
 logscale_theta = int(sys.argv[4])
@@ -46,7 +46,7 @@ sys.stdout.flush()
 
 
 names = ["ftm", "M"]
-    
+
 if minmax == False:
     names.append("nominmax")
 if logscale_theta == True:
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         model_dir,
         "_".join(
             [
-                eff_type, 
+                eff_type,
                 loss_type,
                 "finetune" + str(finetune),
                 "log-" + str(logscale_theta),
@@ -143,14 +143,14 @@ if __name__ == "__main__":
     print(str(datetime.datetime.now()) + " Finished initializing dataset")
     # initialize model, designate loss function
 
-    model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type, 
+    model = cnn.EffNet(in_channels=1, outdim=outdim, loss=loss_type, eff_type=eff_type,
                        scaler=scaler, LMA=LMA, steps_per_epoch=steps_per_epoch,
-                         var=bn_var, save_path=pred_path, lr=lr, minmax=minmax, 
+                         var=bn_var, save_path=pred_path, lr=lr, minmax=minmax,
                          logtheta=logscale_theta, opt=opt, mu=mu)
     print(str(datetime.datetime.now()) + " Finished initializing model")
 
     # initialize checkpoint methods
-    # save best checkpoint 
+    # save best checkpoint
     if loss_type == "ploss":
         abbr_loss = "p"
     elif loss_type == "weighted_p":
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         # Use CPU for now (MPS has float64 compatibility issues with torchmetrics)
         accelerator = "cpu"
         devices = 1
-        
+
     trainer = pl.Trainer(
         accelerator=accelerator,
         devices=devices,
@@ -201,8 +201,8 @@ if __name__ == "__main__":
         enable_progress_bar=True,
         max_time=None, #timedelta(hours=12)
     )
-    
-    # train 
+
+    # train
     print("Training ...")
     trainer.fit(model, dataset)
 

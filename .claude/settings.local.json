@@ -25,7 +25,9 @@
       "Bash(TMP_WEIGHT_DIR=/tmp make rt23pnpl)",
       "Bash(jobs)",
       "Bash(../.venv/bin/python:*)",
-      "Read(//Users/jos/jos2p8/etc/josimp/links/**)"
+      "Read(//Users/jos/jos2p8/etc/josimp/links/**)",
+      "Read(//Users/jos/w/perceptual_neural_physical/outputs/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size32_lr-0.001_init-test/**)",
+      "Read(//Volumes/Samsung-990-Pro-4TB-2025/w/perceptual_neural_physical/outputs/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size32_lr-0.001_init-test/**)"
     ],
     "deny": []
   }

@@ -592,6 +592,19 @@ ri23pnpl run-icassp23-pnploss:
 	@echo "Training EfficientNet with PNP-loss (ICASSP23)..."
 	source .venv/bin/activate && python icassp23/06_train_effnet_pnploss.py $(SAVE_DIR)/icassp23 $(INIT_ID) $(BATCH_SIZE)
 
+#================================== TENSORBOARD MAKE TARGETS ==================================
+
+tbo:
+	@echo Say: open http://localhost:6008/
+
+tb25:
+	tensorboard --logdir ./outputs/icassp25/f_W/ &
+	@make tbo
+
+tb25-b0pl:
+	tensorboard --logdir ./outputs/icassp25/f_W/b0_ploss_finetuneFalse_log-1_minmax-1_opt-adam_batch_size32_lr-0.001_init-test/logs &
+	@make tbo
+
 #================================== UTILITY MAKE TARGETS ==================================
 
 # Data and output management

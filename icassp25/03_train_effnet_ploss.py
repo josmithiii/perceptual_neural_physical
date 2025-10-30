@@ -24,7 +24,7 @@ from pnp_synth import utils
 start_time = int(time.time())
 print(str(datetime.datetime.now()) + " Start.")
 print(__doc__ + "\n")
-save_dir = sys.argv[1]  # /home/han/data/
+save_dir = sys.argv[1]
 init_id = sys.argv[2]
 minmax = int(sys.argv[3]) #need to cast to int to make the boolean evaluation work
 logscale_theta = int(sys.argv[4])
