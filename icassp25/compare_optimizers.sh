@@ -6,6 +6,8 @@ set -e  # Exit on error
 
 SAVE_DIR=${1:-"outputs/icassp25"}
 INIT_ID=${2:-"test"}
+DATE=$(date +%Y-%m-%d)
+INIT_ID="${INIT_ID}_${DATE}"  # Append date for easy filtering
 MINMAX=1          # Use MinMax scaling [-1, 1]
 LOGSCALE=1        # Use log-scale for frequency parameters
 EFF_TYPE="b0"     # EfficientNet-B0 architecture
@@ -14,6 +16,7 @@ BATCH_SIZE=32     # Batch size
 echo "============================================"
 echo "Optimizer Comparison Experiment"
 echo "============================================"
+echo "Date: $DATE"
 echo "Save directory: $SAVE_DIR"
 echo "Init ID: $INIT_ID"
 echo "EfficientNet: $EFF_TYPE"
@@ -60,6 +63,9 @@ echo "  Sophia: $SAVE_DIR/f_W/${EFF_TYPE}_ploss_finetuneFalse_log-${LOGSCALE}_mi
 echo ""
 echo "To compare TensorBoard logs:"
 echo "  tensorboard --logdir=$SAVE_DIR/f_W/"
+echo ""
+echo "To filter by date in TensorBoard:"
+echo "  Use regex filter: $DATE"
 echo ""
 echo "To analyze best checkpoints:"
 echo "  python print_best_checkpoint.py <model_dir>"
