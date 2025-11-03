@@ -111,12 +111,16 @@ class EffNet(pl.LightningModule):
         elif self.loss_type == "LMA":
             self.loss = losses.TimeFrequencyScatteringLoss(self.scaler)
         self.save_path = save_path
+        # Infer synth_type from save_path, default to "ftm" for icassp23/icassp25
         if "ftm" in self.save_path:
             self.synth_type = "ftm"
         elif "am" in self.save_path:
             self.synth_type = "amchirp"
-        elif "mersenne" in self.save_path:
+        elif "mersenne" in self.save_path or "string" in self.save_path:
             self.synth_type = "string"
+        else:
+            # Default to ftm for icassp23/icassp25 experiments
+            self.synth_type = "ftm"
         self.val_loss = None
         self.outdim = outdim
         self.metric_macro = metrics.JTFSloss(self.scaler, "macro", self.synth_type, logtheta)
