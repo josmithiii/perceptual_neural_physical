@@ -5,8 +5,12 @@ SHELL := /bin/bash
 
 .PHONY: help setup install test clean lint format jupyter experiments
 
-# Default target - FIXME: NEEDS UPDATING
-h help:
+h help: ## Show help
+	@grep -E '^[.a-zA-Z0-9_ -]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' | less -R
+
+# We now show help provided by each make target locally - below is the original central help:
+
+h0 help-orig:
 	@echo "Perceptual Neural Physical Sound Matching - Development Makefile"
 	@echo ""
 	@echo "Setup and Installation:"
@@ -156,6 +160,15 @@ ri25pnpl run-icassp25-pnploss: $(SAVE_DIR)/icassp25/x/ftm_train_audio.h5 Mi25
 	source .venv/bin/activate && python icassp25/05_train_effnet_pnploss.py $(SAVE_DIR)/icassp25 $(INIT_ID) 1 1 adam b0 $(BATCH_SIZE)
 
 ri25all run-icassp25-all: ri25pl ri25pnpl
+
+
+# Comparison targets
+
+ci25o compare-icassp25-optimizers: ## Adam (1st order) vs. Sophia (2nd order)
+	./icassp25/compare_optimizers.sh # See ./icassp25/README_optimizer_comparison.md
+	tensorboard --logdir=outputs/icassp25/f_W/  # View training curves side-by-side
+	python print_best_checkpoint.py outputs/icassp25/f_W/b0_ploss_*_adam/ # Check which achieved better validation loss
+	python print_best_checkpoint.py outputs/icassp25/f_W/b0_ploss_*_sophia/
 
 # Evaluation targets
 ei25pl eval-icassp25-ploss:

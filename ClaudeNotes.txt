@@ -22,3 +22,193 @@ This archival file logs things I want to remember from Claude sessions
   - Error handling for missing files
 
   The script is executable and ready to use!
+
+------------------------------------------------------------------------
+
+EfficientNet-B0 is the base model of the EfficientNet family, designed using neural architecture search with a compound scaling method. Here's its architecture:
+
+Key Characteristics
+Input: 224×224×3 images (though your code modifies this via the conv2d layer before it)
+Total parameters: ~5.3 million
+Depth: 18 main blocks (plus stem and head)
+Architecture Structure
+
+1. Stem:
+   - Conv2d 3×3, stride 2, 32 filters
+   - BatchNorm + Swish activation
+
+2. MBConv Blocks (Mobile Inverted Bottleneck Convolution):
+    Stage 1: 1 block, 16 filters, 1×1 kernel, stride 1
+    Stage 2: 2 blocks, 24 filters, 3×3 kernel, stride 2
+    Stage 3: 2 blocks, 40 filters, 5×5 kernel, stride 2
+    Stage 4: 3 blocks, 80 filters, 3×3 kernel, stride 2
+    Stage 5: 3 blocks, 112 filters, 5×5 kernel, stride 1
+    Stage 6: 4 blocks, 192 filters, 5×5 kernel, stride 2
+    Stage 7: 1 block, 320 filters, 3×3 kernel, stride 1
+
+3. Head:
+    Conv2d 1×1, 1280 filters
+    Global average pooling
+    Fully connected layer → num_classes (in your case, outdim)
+
+Key Features
+
+    Squeeze-and-Excitation (SE): Attention mechanism in each MBConv block
+    Swish activation: x * sigmoid(x) instead of ReLU
+    Depthwise separable convolutions: Reduces parameters and computation
+    Compound scaling: B1-B7 scale width, depth, and resolution proportionally
+
+In your code: The num_classes=outdim replaces the final FC layer to
+output your desired parameter dimensions instead of ImageNet's 1000 classes.
+
+------------------------------------------------------------------------
+11/03/25 - CCST
+
+> Please compare and contrast @icassp23/ and @icassp25/.  My main goal is to work with the best results estimating percussion synthesis parameters from spectrograms.  I was not
+ able to locate the icassp25 paper, so it might not have been accepted into the conference.  Another contender is @taslp23/ which presumably consolidates @icassp23/
+  ⎿  Listed directory icassp23/
+  ⎿  Listed directory icassp25/
+  ⎿  Listed directory taslp23/
+
+⏺ I'll help you compare these directories to identify which has the best approach for percussion synthesis parameter estimation. Let me explore the key differences between
+  icassp23/, icassp25/, and taslp23/.
+
+⏺ Explore(Compare icassp directories)
+  ⎿  Done (37 tool uses · 78.5k tokens · 3m 38s)
+
+⏺ Summary: Which Directory for Best Percussion Parameter Estimation?
+
+  Based on my exploration, here are the key findings:
+
+  Publication Status
+
+  - icassp23/: ✅ Published (ICASSP 2023) - https://arxiv.org/abs/2301.02886
+  - taslp23/: ✅ Submitted to IEEE/ACM TASLP - https://arxiv.org/abs/2311.14213
+  - icassp25/: ❌ No publication found - appears to be active development
+
+  Main Differences
+
+  | Aspect       | ICASSP23                        | TASLP23                         | ICASSP25                          |
+  |--------------|---------------------------------|---------------------------------|-----------------------------------|
+  | Focus        | PNP loss variants (15+ configs) | Multi-synthesizer + fine-tuning | Modern framework + analysis tools |
+  | Synthesizers | FTM drums only                  | FTM + AMChirp + String          | FTM drums only                    |
+  | Training     | 70 epochs, batch 32-256         | 70 epochs, batch 256            | 10-70 epochs (flexible)           |
+  | Optimizers   | Adam                            | Adam                            | Adam + Sophia                     |
+  | Code Style   | Hardcoded configs               | CLI arguments                   | DOCE framework                    |
+  | Analysis     | Jupyter notebooks               | Limited                         | Interactive HTML + gradient tools |
+
+  Key Innovations by Project
+
+  ICASSP23 (Foundational):
+  - Established PNP loss with Riemannian metric M = J^T * J
+  - Comprehensive LMA adaptation strategies
+  - Published baseline with demo audio
+
+  TASLP23 (Extension):
+  - Two-stage fine-tuning: P-Loss → PNP Loss
+  - Multi-synthesizer architecture via registry pattern
+  - Consolidates and extends ICASSP23 methodology
+
+  ICASSP25 (Modern):
+  - Sophia optimizer (second-order method)
+  - Unified experimental framework (doce.py)
+  - Gradient analysis tools (scripts 06, 08)
+  - Interactive audio comparison with HTML interface
+  - Best checkpoint selection utilities
+
+  Recommendation for Best Results 🎯
+
+  Primary: Use icassp25/ for active development
+  - Most modern codebase with best practices
+  - Superior analysis tools (gradient monitoring, audio comparison)
+  - Flexible experimentation framework
+  - Incorporates lessons from both predecessors
+  - Active development (July 2025 commits)
+
+  Secondary: Reference icassp23/ for baselines
+  - Published results you can cite
+  - Comprehensive PNP loss exploration
+  - Validated approach with public demos at https://lylyhan.github.io/perceptual_neural_physical/
+
+  If needed: Mine taslp23/ for specific features
+  - Multi-synthesizer support
+  - Fine-tuning workflows
+  - Parameter scaling strategies
+
+  Relationship:
+
+  taslp23/ does consolidate icassp23/ (extends it to multiple synthesizers and adds fine-tuning), but icassp25/ represents the most refined implementation with modern tooling.
+
+  Bottom line: For percussion parameter estimation, start with icassp25/ - it has the best engineering practices and analysis capabilities for iterating toward optimal results.
+
+---
+
+> Do both report parameter loss?
+
+⏺ Yes, both optimizers report parameter loss! Here's what gets logged:
+
+  Losses Reported During Training
+
+  For All Optimizers (Adam, Sophia, AdamW):
+
+  During Training:
+  - train_loss - The actual training loss (depends on loss_type: "ploss", "weighted_p", etc.)
+  - lr - Learning rate (tracked every epoch)
+
+  During Validation:
+  - val_loss - Validation loss (same type as training loss)
+  - ploss_metrics - Always computed as pure parameter MSE, regardless of loss_type! (line 318, 358)
+
+  During Testing:
+  - test_loss - Test loss
+  - ploss - Pure parameter MSE on test set (line 300)
+  - macro_metrics - Macro-averaged metrics
+  - micro_metrics - Micro-averaged metrics
+  - mss metrics - Multi-scale spectral metrics
+
+  Key Insight
+
+  The code is smart! Even if you train with PNP loss (weighted_p), it
+  still tracks pure parameter loss (ploss_metrics) during validation
+  and testing. This means:
+
+  1. Training loss (train_loss, val_loss):
+    - With loss_type="ploss" → Simple parameter MSE
+    - With loss_type="weighted_p" → PNP loss (weighted by Riemannian metric M)
+  2. Parameter loss (ploss_metrics, ploss):
+    - Always computed as F.mse_loss(outputs, y) (lines 258, 265)
+    - Gives you a fair comparison between different loss types
+    - Shows actual parameter estimation accuracy
+
+  What This Means for Your Comparison
+
+  When comparing Adam vs Sophia, you can look at:
+
+  In TensorBoard:
+  - train_loss vs val_loss - Convergence behavior
+  - ploss_metrics - Direct parameter estimation accuracy (what you care about!)
+  - lr - Learning rate schedule
+
+  After Testing:
+  - ploss - Final parameter estimation error on test set
+  - macro_metrics, micro_metrics - Per-parameter statistics
+  - mss metrics - Spectral reconstruction quality
+
+  Example TensorBoard View
+
+  When you run:
+  tensorboard --logdir=outputs/icassp25/f_W/
+
+  You'll see these curves for both Adam and Sophia:
+  - 📉 train_loss - Should decrease steadily
+  - 📉 val_loss - Should decrease and track train_loss
+  - 📊 ploss_metrics - Main metric: parameter estimation MSE
+  - 📈 lr - Learning rate (will show ReduceLROnPlateau adjustments)
+
+  So yes, both optimizers report identical metrics, making them
+  directly comparable! The ploss_metrics on the validation set is your
+  key metric for determining which optimizer gives better percussion
+  parameter estimation.
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
