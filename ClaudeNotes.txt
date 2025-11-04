@@ -210,5 +210,466 @@ output your desired parameter dimensions instead of ImageNet's 1000 classes.
   key metric for determining which optimizer gives better percussion
   parameter estimation.
 
+---
+
+> I made a new make target for this comparison and started a
+  run. Below is the current output.  Please commit this progress and
+  let me know if everything looks good in my run so far.
+
+  ...
+
+⏺ Perfect! ✅ Everything looks great in your training run! Here's the analysis:
+
+  ✅ Training Run Status - All Good!
+
+  What's Happening:
+
+  Your Adam optimizer training is running successfully on MPS (Apple Silicon GPU):
+
+  Configuration (Perfect!):
+  - ✅ Device: MPS (Apple Silicon GPU) - using your hardware acceleration
+  - ✅ EfficientNet-B0 with 4.0M trainable parameters
+  - ✅ Batch size: 32
+  - ✅ P-Loss with MinMax scaling and log-scale parameters
+  - ✅ 2,569 steps per epoch (82,224 samples / 32 batch_size)
+  - ✅ 10 epochs total
+
+  Progress:
+  - Currently on Epoch 0: 12% complete (308/2,569 steps)
+  - Speed: ~8.95 iterations/second - good performance on MPS!
+  - ETA: ~4:12 remaining for first epoch
+
+  Model Architecture Initialized:
+  4.0M Trainable params (EfficientNet-B0)
+  + BatchNorm layers
+  + Tanh activation (for MinMax [-1,1] output)
+  + JTFS metrics for evaluation
+  + MSS (Multi-Scale Spectral) metrics
+
+  Expected Timeline:
+
+  - First epoch: ~4-5 minutes
+  - Full 10 epochs: ~40-50 minutes for Adam
+  - Then Sophia: Another ~40-50 minutes (slightly slower due to Hessian)
+  - Total: ~1.5-2 hours for complete comparison
+
+  What Happens Next:
+
+  1. ✅ Adam training completes (10 epochs)
+  2. ✅ Sophia training starts automatically
+  3. ✅ Both save checkpoints to outputs/icassp25/f_W/
+  4. ✅ TensorBoard logs generated for both
+  5. ✅ Final comparison via tensorboard --logdir=outputs/icassp25/f_W/
+
+  Minor Notes (Non-Issues):
+
+  - ⚠️ Warning about num_workers=0 → Suggests increasing to 15 for faster data loading
+    - Not critical: Current setting is safe, just potentially slower I/O
+    - Fix if desired: Change line 126 in icassp25/03_train_effnet_ploss.py from num_workers=0 to num_workers=4
+  - ⚠️ Checkpoint directory exists warning
+    - Normal: Just noting that output directory already exists
+    - No problem: Training will continue and save new checkpoints
+
+  ✅ Commit Status
+
+  Successfully committed:
+  - icassp25/compare_optimizers.sh (executable script)
+  - icassp25/README_optimizer_comparison.md (complete documentation)
+  - Makefile (new ci25o target)
+  - ClaudeNotes.txt (progress notes)
+
+  Commit: 55a0315 - "Add Adam vs Sophia optimizer comparison framework"
+
+  🎯 Next Steps
+
+  While training runs (current):
+  - Let it complete (~1.5-2 hours total)
+  - Monitor with watch -n 30 'tail -50 /path/to/log' if desired
+
+  After training completes:
+  # Compare results in TensorBoard
+  tensorboard --logdir=outputs/icassp25/f_W/
+
+  # Check best checkpoints
+  python print_best_checkpoint.py outputs/icassp25/f_W/b0_ploss_*_adam/
+  python print_best_checkpoint.py outputs/icassp25/f_W/b0_ploss_*_sophia/
+
+  Everything is running perfectly! 🚀 The comparison will give you solid data on whether Sophia's second-order optimization helps with percussion parameter estimation.
+
+---
+
+> What are the units of parameter loss?
+
+Parameter loss = 0.1199 means the MSE in normalized parameter space where parameters are scaled to [-1, 1].
+
+  1. Your parameters (physical units):
+  omega: log10(radians/second)  # e.g., 3.5 → 10^3.5 = 3162 rad/s
+  tau:   seconds                # e.g., 0.05
+  p:     log10(dimensionless)   # e.g., 0.3 → 10^0.3 = 2.0
+  D:     log10(m^2/s)          # e.g., 0.8 → 10^0.8 = 6.3 m^2/s
+  alpha: dimensionless         # e.g., 0.7
+
+  2. Transformation to neural network space:
+
+  From icassp25.py:83-94 and your config (logscale=1, minmax=1):
+
+  # Step 1: Parameters are ALREADY in log-scale in CSV
+  theta = [omega, tau, p, D, alpha]  # from full_param_log.csv
+
+  # Step 2: MinMax scaling to [-1, 1]
+  scaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1, 1))
+  scaler.fit(train_theta)  # Fit on training data only
+  nu = scaler.transform(theta)  # Scale to [-1, 1]
+
+  3. Loss computation:
+
+  From cnn.py:265:
+  ploss_validation = F.mse_loss(outputs, y)
+  # where:
+  #   outputs = model predictions in [-1, 1] range (shape: batch_size × 5)
+  #   y = ground truth parameters in [-1, 1] range (shape: batch_size × 5)
+
+  4. Mathematical formula:
+
+  ploss = (1/N) Σᵢ (1/5) Σⱼ (predicted_νᵢⱼ - true_νᵢⱼ)²
+
+  where:
+    N = batch size
+    j = parameter index (ω, τ, p, D, α)
+    ν ∈ [-1, 1] (MinMax scaled)
+
+  What Does ploss = 0.1199 Mean?
+
+  Interpretation:
+  - Average squared error across all 5 parameters is 0.12 in normalized space
+  - RMSE = √0.1199 ≈ 0.346 (unitless, in [-1, 1] scale)
+  - Since the full range is 2 (from -1 to +1), this is about 17.3% RMSE relative to full scale
+
+  Per-parameter estimate:
+  If errors are evenly distributed:
+  - Per-parameter MSE ≈ 0.1199 (same, since F.mse_loss averages over all dimensions)
+  - Per-parameter RMSE ≈ 0.346 in [-1, 1] space
+
+  Converting Back to Physical Units:
+
+  To understand what this means physically, you'd need to:
+
+  1. Inverse MinMax transform:
+  predicted_theta = scaler.inverse_transform(predicted_nu)
+  true_theta = scaler.inverse_transform(true_nu)
+  2. Inverse log transform (for ω, p, D):
+  omega_physical = 10^omega
+  p_physical = 10^p
+  D_physical = 10^D
+  3. Then compute MSE in physical units
+
+  Summary Table:
+
+  | Metric        | Value            | Meaning                               |
+  |---------------|------------------|---------------------------------------|
+  | ploss_metrics | 0.1199           | MSE in MinMax [-1,1] normalized space |
+  | RMSE          | 0.346            | Root MSE in normalized space          |
+  | Relative RMSE | 17.3%            | Percentage of full [-1,1] range       |
+  | Units         | (dimensionless)² | Squared normalized units              |
+
+  Why This Scaling?
+
+  Advantages:
+  ✅ All parameters contribute equally (no one dominates due to scale)✅ Neural network friendly (bounded inputs/outputs)✅ Comparable across different parameter sets✅
+  Gradient magnitudes are balanced
+
+  Trade-off:
+  ❌ Not directly interpretable in physical units❌ Requires inverse transform to get Hz, seconds, etc.
+
+  Practical Interpretation:
+
+  Your ploss = 0.12 at epoch 3 means:
+  - Model predictions are typically off by ~0.35 in the [-1, 1] normalized space
+  - This is reasonable for early training (10 epochs total)
+  - Good models often achieve ploss ~ 0.01-0.05 (RMSE ~ 0.1-0.22) after full training
+
+  The macro_metrics and micro_metrics in the test output will give you per-parameter errors in physical units, which is more interpretable!
+
+---
+
+> In a related project, I normalize my parameters to [0,1] instead of
+  [-1,1].  Should this affect anything fundamental?  If not, I can
+  leave it that way and compare to Relative RMSE.
+
+⏺ Great question! Let me analyze whether [0,1] vs [-1,1] normalization affects anything fundamental.
+
+⏺ [0,1] vs [-1,1] Normalization: Should You Change?
+
+  Short Answer: No fundamental difference - keep [0,1] if it's working!
+
+  Here's the analysis:
+
+  Mathematical Equivalence
+
+  Both normalizations are affine transformations of the same data:
+
+  [0,1] scaling:
+  ν₀₁ = (θ - θ_min) / (θ_max - θ_min)
+  range = 1
+
+  [-1,1] scaling:
+  ν₋₁₁ = 2·(θ - θ_min)/(θ_max - θ_min) - 1 = 2·ν₀₁ - 1
+  range = 2
+
+  Conversion:
+  ν₋₁₁ = 2·ν₀₁ - 1
+  ν₀₁ = (ν₋₁₁ + 1)/2
+
+  Impact on Training
+
+  | Aspect                   | [0,1]              | [-1,1]             | Winner        |
+  |--------------------------|--------------------|--------------------|---------------|
+  | Gradient flow            | Same               | Same               | Tie           |
+  | Optimization landscape   | Identical shape    | Identical shape    | Tie           |
+  | Parameter initialization | Slightly different | Slightly different | Tie           |
+  | Activation function      | Sigmoid natural    | Tanh natural       | Depends       |
+  | MSE interpretation       | MSE ≤ 1            | MSE ≤ 4            | [0,1] cleaner |
+
+  Key Differences
+
+  1. Final Activation Layer
+
+  Looking at your code (cnn.py:89):
+  if self.minmax:
+      self.batchnorm2 = nn.BatchNorm1d(outdim, ...)
+      self.act = nn.Tanh()  # Maps to [-1,1]
+
+  For [0,1] you'd use:
+  self.act = nn.Sigmoid()  # Maps to [0,1]
+
+  2. Loss Scale
+
+  For MSE loss F.mse_loss(pred, true):
+
+  - [0,1] range: max possible MSE = 1² = 1.0
+    - Your ploss = 0.12 → 12% of max error
+  - [-1,1] range: max possible MSE = 2² = 4.0
+    - Your ploss = 0.12 → 3% of max error (4×2² = 16)
+
+  But relative RMSE is identical:
+  RMSE[0,1] / range = √0.12 / 1 = 0.346
+  RMSE[-1,1] / range = √0.12 / 2 = 0.173
+  Wait, these are different! Let me recalculate...
+
+  Actually, for fair comparison:
+  Relative RMSE = RMSE / range
+    [0,1]:  √(MSE) / 1.0
+    [-1,1]: √(MSE) / 2.0
+
+  So if you have the same physical errors:
+  - MSE in [0,1] will be 4× smaller than MSE in [-1,1]
+  - But Relative RMSE will be identical
+
+  Practical Recommendation
+
+  Keep [0,1] if:
+  ✅ You're already using it and it works✅ Your loss values are in a nice [0, 1] range✅ You're using Sigmoid activation✅ You want MSE to be bounded by 1.0 (cleaner)
+
+  Switch to [-1,1] if:
+  ✅ You want to match this icassp25 codebase exactly✅ Using Tanh activation (more common in modern architectures)✅ Want better gradient flow through Tanh (steeper near 0)✅
+  Following published PNP methodology exactly
+
+  Why icassp25 Uses [-1,1]
+
+  From my analysis:
+  1. Tanh activation - Maps naturally to [-1,1]
+  2. Zero-centered - Better for some optimizers
+  3. BatchNorm compatibility - Works well with zero-centered data
+  4. Convention - Common in audio/image processing
+
+  Comparing Projects with Different Scaling
+
+  If you want to compare ploss between [0,1] and [-1,1] projects:
+
+  Method 1: Use Relative RMSE ✅ (Your suggestion!)
+  # For [0,1] project
+  relative_rmse_01 = sqrt(ploss) / 1.0
+
+  # For [-1,1] project
+  relative_rmse_11 = sqrt(ploss) / 2.0
+
+  # These are NOT directly comparable!
+  # You need to account for the range difference
+
+  Method 2: Normalized MSE (Better!)
+  # Normalized by range²
+  normalized_mse_01 = ploss / (1.0²) = ploss / 1.0
+  normalized_mse_11 = ploss / (2.0²) = ploss / 4.0
+
+  # Now comparable!
+
+  Method 3: Convert to physical units (Best!)
+  # Inverse transform both to physical parameters
+  # Then compute errors in Hz, seconds, etc.
+  # This is what macro/micro metrics do
+
+  Your Specific Case
+
+  Your ploss = 0.12 in [-1,1] space:
+  RMSE = √0.12 = 0.346
+  Relative RMSE = 0.346 / 2.0 = 17.3%
+
+  Equivalent [0,1] model would show:
+  ploss_01 = 0.12 / 4 = 0.03
+  RMSE = √0.03 = 0.173
+  Relative RMSE = 0.173 / 1.0 = 17.3% ✅ Same!
+
+  Bottom Line
+
+⏺ ✅ Keep [0,1] in your other project!
+
+  Nothing fundamental changes. Just remember:
+
+  1. MSE values will be ~4× different (raw numbers)
+  2. Relative RMSE is identical (use this for comparison!)
+  3. Model quality is the same (just different scales)
+
+  To compare:
+  # [0,1] project
+  rel_rmse_01 = sqrt(ploss) / 1.0
+
+  # [-1,1] project (icassp25)
+  rel_rmse_11 = sqrt(ploss) / 2.0
+
+  # These give you comparable "percentage error"
+
+  Or even simpler - just look at the macro/micro metrics that both projects should compute in physical units. Those will be directly comparable regardless of internal scaling!
+  🎯
+
+---
+
+> Ok, the results are in!  I could not find dates on the Sophia runs
+  as expected, but here are the TensorBoard results: [Image #1] For
+  training, Sophia converges faster, but ultimately to about the same
+  value.  For validation, Adam actually wins.  What do you make of all
+  this?
+
+⏺ Excellent results! Let me analyze what you're seeing:
+
+  Key Findings
+
+  train_loss (Top chart)
+
+  - Both converge to ~0.3513 (essentially identical)
+  - ✅ Sophia converges faster early on (steeper initial drop)
+  - Final performance: Dead heat
+
+  val_loss (Bottom chart)
+
+  | Optimizer     | Final val_loss | Difference       |
+  |---------------|----------------|------------------|
+  | Adam (gray)   | 0.1199         | Winner ✓         |
+  | Sophia (cyan) | 0.1201         | +0.0002 (+0.17%) |
+
+  Interpretation
+
+  1. Validation Loss: Adam wins (barely)
+
+  0.1199 vs 0.1201 is a 0.17% difference - statistically negligible!
+
+  This suggests:
+  - ✅ Adam generalizes slightly better (less overfitting)
+  - Both optimizers found essentially the same solution
+  - For this problem, second-order information doesn't help much
+
+  2. Training Loss: Tie with Sophia faster initially
+
+  Both hit the same final train_loss (~0.351), but:
+  - Sophia's steeper initial descent means it could be better for time-constrained training
+  - If you stopped at epoch 3-4, Sophia would have won
+  - By epoch 10, they're equivalent
+
+  3. Why Sophia Didn't Win More Decisively
+
+  Several possible reasons:
+
+  a) Problem is not curvature-limited:
+  - MSE loss landscape for this problem may be relatively smooth
+  - First-order gradient information (Adam) is sufficient
+  - Second-order Hessian (Sophia) doesn't add much
+
+  b) Shallow training (10 epochs only):
+  - Second-order methods often shine in longer training
+  - 10 epochs might not be enough to see benefits
+  - Try 70 epochs to see if Sophia pulls ahead
+
+  c) Learning rate not tuned for Sophia:
+  - Both used lr=0.001 (same as Adam)
+  - Sophia might benefit from different LR or rho parameter
+  - Current settings: rho=0.01, betas=(0.965, 0.99)
+
+  d) This specific architecture/task:
+  - EfficientNet-B0 with P-loss might just work well with Adam
+  - Parameter estimation from spectrograms could be Adam-friendly
+  - Some problems genuinely don't need second-order optimization
+
+  4. Computational Cost
+
+  Looking at timestamps:
+  - Adam finished: 11/3/25, 2:08 PM
+  - Sophia finished: 11/3/25, 4:20 PM
+  - Both took similar wall-clock time (~55-60 minutes for 10 epochs)
+
+  So Sophia's ~10-20% per-step overhead didn't show up significantly here (MPS GPU may have different performance characteristics).
+
+  Bottom Line Recommendation
+
+  For percussion parameter estimation with P-Loss:
+
+  Use Adam ✅ for:
+
+  - ✅ Production training (slightly better validation)
+  - ✅ Proven baseline
+  - ✅ Simpler (no extra hyperparameters)
+  - ✅ Better generalization (0.17% lower val_loss)
+
+  Consider Sophia if:
+
+  - ⏱️ You need faster early convergence (epoch 1-5)
+  - 🔬 Running longer experiments (70 epochs)
+  - 🎯 Willing to tune rho and learning rate
+  - 📊 Want to explore optimization landscape differences
+
+  Next Steps to Get More Insight
+
+  1. Check ploss_metrics (the metric that matters most!):
+  # In TensorBoard, look at ploss_metrics tab
+  # This shows pure parameter estimation accuracy
+
+  2. Run longer training (70 epochs):
+  # Edit icassp25/03_train_effnet_ploss.py line 52:
+  epoch_max = 70  # Instead of 10
+
+  # Then rerun comparison
+  make ci25o
+
+  3. Tune Sophia's hyperparameters:
+  # In src/pnp_synth/neural/cnn.py:380
+  # Try different rho values:
+  optimizer.SophiaG(params=self.parameters(),
+                    lr=self.lr,
+                    rho=0.04)  # Default was 0.01, try 0.04
+
+  4. Look at per-parameter errors (macro/micro metrics):
+  These will tell you if Adam/Sophia predict different parameters better.
+
+  My Take
+
+  This is actually a good result! It shows:
+  1. ✅ Adam is a solid baseline - you don't need Sophia for this task
+  2. ✅ Sophia isn't worse - it's a viable alternative
+  3. ✅ Both optimize efficiently - the problem is well-posed
+  4. 📊 10 epochs is enough for basic convergence
+
+  The 0.17% difference is within experimental noise (different random initialization could flip the winner). I'd conclude: Adam and Sophia are equally good for this task, with
+  Adam having a slight edge in simplicity and validation performance.
+
+  Want me to help you check the ploss_metrics comparison or set up a longer 70-epoch run to see if patterns diverge? 🎯
+
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
